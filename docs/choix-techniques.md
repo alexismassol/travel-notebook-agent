@@ -56,6 +56,7 @@ dépôt. Quand un chiffre est une hypothèse, c'est écrit.
 | 40 | Une citation ne justifie que ce dont elle parle | Une envie citait un budget dit dix messages plus tard |
 | 41 | Un carnet validé ne se représente pas | Le tour de remerciement rouvrait le récapitulatif |
 | 42 | Un troisième playbook pour le voyage surprise | « Surprenez-moi » ne veut pas dire répondre à un questionnaire |
+| 43 | Une fiche de pays montre une vraie photo du pays | « Albanie » montrait un sabre de musée, « Jordanie » une avenue de Paris |
 
 ## Qui a décidé
 
@@ -1317,3 +1318,28 @@ réponse serait une passerelle type LiteLLM pour le routage et la bascule, pas u
 | CopilotKit | Une abstraction de plus ; un chat maison garde la main sur l'interaction |
 | Un appel d'extraction séparé à chaque tour | Un appel de plus par tour ; à mesurer si les outils `note_*` déçoivent |
 | Filtrer les superlatifs dans le texte affiché | Réécrire la réponse du modèle en direct ; le taux est mesuré et documenté à la place |
+
+## Décision 43 : Une fiche de pays montre une vraie photo du pays
+
+**Le problème, mesuré sur le vrai Wikipédia.** Pour une fiche qui porte sur un pays entier,
+« Albanie » affichait un sabre de musée et « Jordanie » une avenue de Paris. Plusieurs autres pays
+n'avaient aucune photo.
+
+**Les causes.** Trois. Le filtre des musées comparait « musee » à une adresse encodée, où « Musée »
+s'écrit « Mus%C3%A9e ». La recherche doublait le nom (« Maroc Maroc »). Enfin, l'image de la page
+d'un pays est un drapeau ou une carte, et la recherche de texte ramenait n'importe quel fichier
+qui contient le nom.
+
+**Ce qu'on a fait.** L'adresse est décodée avant le filtre, qui connaît aussi « museu », « museo »,
+« muzey » et « muzeum ». Pour un pays, la recherche porte sur son seul nom, puis la fiche prend la
+première vraie photo de l'article, dans l'ordre de lecture (`fetchArticlePhoto`). Enfin, une
+réponse 429 ou 503 de Wikimédia compte comme une panne passagère, jamais gardée en cache.
+
+**Ce qu'on a écarté.** La page « Tourisme en… » : son nom varie (« au Maroc », « en Islande ») et
+son image est parfois un logo.
+
+**La preuve.** Cinq tests, vus rouges puis verts, et un sabotage par correctif. Sur le vrai
+Wikipédia : Byllis pour l'Albanie, la forêt d'Ajloun pour la Jordanie, une ferme pour l'Islande,
+une rizière de la baie d'Halong pour le Vietnam, le Geirangerfjord pour la Norvège.
+
+**Où le voir.** `src/server/agent/destination-lookup.ts`.

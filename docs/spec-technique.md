@@ -12,7 +12,7 @@ Le modèle choisit des outils (chercher sur le web, noter une information, poser
 et c'est notre serveur qui les exécute et qui garde le contrôle. Chaque garde-fou cité ici a été
 mesuré sur le vrai modèle, jamais deviné : les preuves sont dans `docs/scenarios/`.
 
-Décrit l'état réel du code au 2026-09-25. `npm run typecheck` passe sans erreur, et les 411 tests
+Décrit l'état réel du code au 2026-09-25. `npm run typecheck` passe sans erreur, et les 416 tests
 unitaires passent (`npx vitest run`, 36 fichiers). Les numéros de ligne peuvent glisser un peu après cette date.
 
 Les mots techniques sont expliqués dans le [glossaire](glossaire.md).

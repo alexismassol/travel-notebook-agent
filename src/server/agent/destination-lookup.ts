@@ -14,6 +14,9 @@
  *   b. sinon, si la page a des coordonnées : une photo géolocalisée sur Wikimedia Commons près
  *      de ce point. Ça corrige les cas où l'image de page est une carte ou un satellite, comme
  *      "Cap-Vert", "Lanzarote" ou "Oman" ;
+ *   a'. pour une fiche qui porte sur un pays entier : la première vraie photo de l'article, dans
+ *      l'ordre de lecture. La recherche texte ramenait sinon un sabre de musée pour « Albanie »
+ *      et une avenue de Paris pour « Jordanie » ;
  *   c. sinon seulement (pas de coordonnées, ou aucune photo géolocalisée exploitable) : la
  *      recherche texte Commons, en exigeant que le nom de fichier contienne le nom du lieu.
  *      Sans quoi un homonyme d'une autre région peut remonter, comme "Cap-Vert" (le pays) qui
@@ -41,6 +44,8 @@ const COMMONS_FILE_NAMESPACE = 6;
 // appel réel. "bitmap" est la valeur reconnue par l'API de recherche MediaWiki (CirrusSearch) ;
 // il n'existe pas de filtre "photo" natif.
 const COMMONS_FILETYPE_FILTER = "filetype:bitmap";
+// Nombre d'images de l'article d'un pays examinées, dans l'ordre de la page.
+const ARTICLE_PHOTO_CANDIDATES = 10;
 // pithumbsize / iiurlwidth : résolution de la photo demandée à l'API.
 const THUMBNAIL_SIZE_PX = 960;
 // Sous ce seuil, l'image est une miniature ou un recadrage trop serré pour une fiche destination.
@@ -69,6 +74,12 @@ const NON_PHOTO_FILENAME_KEYWORDS = [
   "lizard",
   "museum",
   "musee",
+  // Même musée dans d'autres langues. Cas réel : « Amaliy San'at Muzeyi, Museu d'Arts
+  // Aplicades » affiché pour l'Ouzbékistan.
+  "museu",
+  "museo",
+  "muzey",
+  "muzeum",
   "interior",
   "dagger",
   "khanjar",
@@ -251,9 +262,28 @@ function pickCandidate(pages: Record<string, WikiPage> | undefined): WikiPage | 
  */
 function isNonPhotographic(url: string | null | undefined): boolean {
   if (!url) return true;
-  const lower = url.toLowerCase();
+  // Décodée d'abord : « Musée » s'écrit « Mus%C3%A9e » dans une URL, et le mot « musee » ne
+  // trouvait rien. Cas réel : un sabre de musée affiché pour « Albanie ».
+  let texte = url;
+  try {
+    texte = decodeURIComponent(url);
+  } catch {
+    // URL mal encodée : on garde le texte brut.
+  }
+  const lower = normalizeForMatch(texte);
   if (lower.includes(".svg")) return true;
   return NON_PHOTO_FILENAME_KEYWORDS.some((keyword) => lower.includes(keyword));
+}
+
+/**
+ * 429 ou 503 : Wikimédia demande de ralentir. On lève une erreur pour que l'échec compte comme
+ * passager, donc jamais mis en cache. Traité comme « pas de photo », le lieu restait sans photo
+ * pour toute la vie du processus (cas réel, pendant une rafale de fiches).
+ */
+function verifierLimite(response: Response): void {
+  if (response.status === 429 || response.status === 503) {
+    throw new Error(`Wikimédia limite les requêtes (${response.status})`);
+  }
 }
 
 function buildCommonsSearchUrl(query: string): string {
@@ -412,6 +442,7 @@ async function fetchCandidate(
   });
   // Un hôte en erreur (5xx, 4xx) est traité comme "pas de résultat exploitable" plutôt que
   // comme une panne totale du lookup : le repli fr -> en doit pouvoir jouer son rôle.
+  verifierLimite(response);
   if (!response.ok) return null;
   const data = (await response.json()) as WikiQueryResponse;
   return pickCandidate(data.query?.pages);
@@ -431,6 +462,7 @@ async function fetchGeosearchPhoto(
     signal,
     headers: { "User-Agent": WIKI_USER_AGENT },
   });
+  verifierLimite(listResponse);
   if (!listResponse.ok) return null;
   const listData = (await listResponse.json()) as GeosearchListResponse;
   const titles = (listData.query?.geosearch ?? [])
@@ -442,6 +474,7 @@ async function fetchGeosearchPhoto(
     signal,
     headers: { "User-Agent": WIKI_USER_AGENT },
   });
+  verifierLimite(infoResponse);
   if (!infoResponse.ok) return null;
   const infoData = (await infoResponse.json()) as CommonsQueryResponse;
   const infoByTitle = new Map<string, CommonsImageInfo | undefined>();
@@ -466,9 +499,74 @@ async function fetchCommonsTextSearchPhoto(
   });
   // Même politique que fetchCandidate : un hôte en erreur (ou une réponse vide) est traité
   // comme "pas de photo trouvée" plutôt que comme une panne du lookup entier.
+  verifierLimite(response);
   if (!response.ok) return null;
   const data = (await response.json()) as CommonsQueryResponse;
   return pickCommonsPhoto(data.query?.pages, normalizeForMatch(placeName));
+}
+
+function buildArticleImagesUrl(host: string, title: string): string {
+  const params = new URLSearchParams({
+    action: "parse",
+    format: "json",
+    prop: "images",
+    redirects: "1",
+    page: title,
+  });
+  return `https://${host}/w/api.php?${params.toString()}`;
+}
+
+/** Même titre, que l'API l'écrive avec des espaces ou des soulignés. */
+function titreDeFichier(title: string): string {
+  return normalizeForMatch(stripCommonsFilePrefix(title)).replace(/_/g, " ");
+}
+
+/**
+ * Repli (a') pour un pays entier : la première vraie photo de son article, dans l'ordre de la
+ * page. Les premières images sont un drapeau, une carte ou une vue satellite, écartées par nom ;
+ * vient ensuite un site ou un paysage (Byllis pour l'Albanie, Ajloun pour la Jordanie, une
+ * rizière pour le Viêt Nam, mesuré sur les vrais articles). `null` si rien n'est exploitable.
+ */
+async function fetchArticlePhoto(
+  host: string,
+  title: string,
+  fetchImpl: typeof fetch,
+  signal: AbortSignal,
+): Promise<string | null> {
+  const response = await fetchImpl(buildArticleImagesUrl(host, title), {
+    signal,
+    headers: { "User-Agent": WIKI_USER_AGENT },
+  });
+  verifierLimite(response);
+  if (!response.ok) return null;
+  const data = (await response.json()) as { parse?: { images?: string[] } };
+  const candidats = (data.parse?.images ?? [])
+    .filter((nom) => /\.(jpe?g|webp)$/i.test(nom) && !isNonPhotographic(nom))
+    .slice(0, ARTICLE_PHOTO_CANDIDATES)
+    .map((nom) => `File:${nom}`);
+  if (candidats.length === 0) return null;
+
+  const infoResponse = await fetchImpl(buildCommonsImageInfoUrl(candidats), {
+    signal,
+    headers: { "User-Agent": WIKI_USER_AGENT },
+  });
+  verifierLimite(infoResponse);
+  if (!infoResponse.ok) return null;
+  const infoData = (await infoResponse.json()) as CommonsQueryResponse;
+  const parTitre = new Map<string, CommonsImageInfo | undefined>();
+  for (const page of Object.values(infoData.query?.pages ?? {})) {
+    if (page.title) parTitre.set(titreDeFichier(page.title), page.imageinfo?.[0]);
+  }
+  for (const candidat of candidats) {
+    const info = parTitre.get(titreDeFichier(candidat));
+    if (isUsableCommonsPhoto(info)) return info.thumburl;
+  }
+  return null;
+}
+
+/** La fiche porte-t-elle sur le pays lui-même (« Albanie », pays « Albanie ») ? */
+function estLePays(name: string, country: string): boolean {
+  return normalizeForMatch(placeQuery(name, country)) === normalizeForMatch(country.trim());
 }
 
 /**
@@ -502,7 +600,10 @@ export async function lookupDestination(
   let result = NULL_RESULT;
   let transientFailure = false;
   try {
-    const query = `${placeQuery(name, country)} ${country}`;
+    // « Maroc Maroc » cherchait deux fois le même mot : pour un pays, son nom suffit.
+    const pays = estLePays(name, country);
+    const query = pays ? country.trim() : `${placeQuery(name, country)} ${country}`;
+    let hote = PRIMARY_HOST;
     const primary = await fetchCandidate(PRIMARY_HOST, query, fetchImpl, controller.signal);
     if (primary?.thumbnail?.source) {
       result = toResult(primary);
@@ -511,6 +612,7 @@ export async function lookupDestination(
       // Priorité : repli en avec photo > primaire fr sans photo (coordonnées/lien restent
       // utiles) > repli en sans photo > rien.
       const best = secondary?.thumbnail?.source ? secondary : (primary ?? secondary);
+      if (best === secondary && secondary) hote = FALLBACK_HOST;
       result = best ? toResult(best) : NULL_RESULT;
     }
 
@@ -520,7 +622,10 @@ export async function lookupDestination(
     // celle qui a produit l'homonyme "Cap-Vert" -> tramway de Dijon.
     if (isNonPhotographic(result.imageUrl)) {
       let photo: string | null = null;
-      if (result.coordinates) {
+      if (pays && result.title) {
+        photo = await fetchArticlePhoto(hote, result.title, fetchImpl, controller.signal);
+      }
+      if (!photo && result.coordinates) {
         photo = await fetchGeosearchPhoto(
           result.coordinates.lat,
           result.coordinates.lon,

@@ -325,7 +325,7 @@ La méthode :
   humains ;
 - comparer Haiku 4.5 et Sonnet 5 avant tout changement de modèle.
 
-Existe déjà : 411 tests unitaires et 5 tests d'intégration réels. Les 16 scénarios de
+Existe déjà : 416 tests unitaires et 5 tests d'intégration réels. Les 16 scénarios de
 référence ont été rejoués 3 fois chacun, puis relus du point de vue du voyageur
 ([`docs/scenarios/relecture.md`](docs/scenarios/relecture.md)). S'y ajoute un essai de robustesse
 sur 12 intentions jamais vues ([`docs/scenarios/robustesse.md`](docs/scenarios/robustesse.md)).
@@ -380,7 +380,7 @@ sur 4 : il reste à choisir entre les deux pays.
 bougent d'un passage sur trois. C'est pour ça que la documentation cite des taux, jamais un essai
 isolé.
 
-Tests : 411 unitaires (`npx vitest run`), dont chaque correctif montré rouge puis vert, avec un
+Tests : 416 unitaires (`npx vitest run`), dont chaque correctif montré rouge puis vert, avec un
 sabotage qui refait tomber le test ; 5 tests d'intégration réels
 ([`tests/integration/agent.test.ts`](tests/integration/agent.test.ts)).
 

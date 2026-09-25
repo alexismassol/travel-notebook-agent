@@ -740,3 +740,181 @@ describe("placeQuery : le lieu, pas la parenthèse", () => {
     );
   });
 });
+
+/**
+ * Cas réels du 2026-09-25 : pour une fiche qui porte sur un pays entier, « Albanie » montrait
+ * un sabre de musée et « Jordanie » une avenue de Paris. La page d'un pays a pour image un
+ * drapeau ou une carte ; l'article, lui, contient des photos du pays, dans l'ordre de lecture.
+ */
+describe("fiche d'un pays entier", () => {
+  const PAGE_ALBANIE = {
+    batchcomplete: "",
+    query: {
+      pages: {
+        "1": {
+          pageid: 1,
+          ns: 0,
+          title: "Albanie",
+          index: 1,
+          thumbnail: {
+            source:
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Flag_of_Albania.svg/960px-Flag_of_Albania.svg.png",
+            width: 960,
+            height: 686,
+          },
+          coordinates: [{ lat: 41, lon: 20, primary: "", globe: "earth" }],
+          fullurl: "https://fr.wikipedia.org/wiki/Albanie",
+        },
+      },
+    },
+  };
+  // Ordre réel de l'article fr « Albanie » (action=parse&prop=images), raccourci.
+  const IMAGES_ALBANIE = {
+    parse: {
+      title: "Albanie",
+      images: [
+        "Flag_of_Albania.svg",
+        "Albania_location_map.png",
+        "Satellite_image_of_Albania_in_May_2003.jpg",
+        "Byllis-01-Alb.jpg",
+        "Apollonia,_Albania_-_panorama_(by_Pudelek).JPG",
+      ],
+    },
+  };
+  const INFO_BYLLIS = {
+    query: {
+      pages: {
+        "-1": {
+          title: "File:Byllis-01-Alb.jpg",
+          imageinfo: [
+            {
+              thumburl:
+                "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Byllis-01-Alb.jpg/960px-Byllis-01-Alb.jpg",
+              thumbwidth: 960,
+              thumbheight: 640,
+              mime: "image/jpeg",
+            },
+          ],
+        },
+      },
+    },
+  };
+
+  it("prend la première vraie photo de l'article, dans l'ordre de la page", async () => {
+    const { fetchImpl, calls } = stubFetch({
+      "fr.wikipedia.org": (url: string) =>
+        url.includes("action=parse") ? IMAGES_ALBANIE : PAGE_ALBANIE,
+      "commons.wikimedia.org": commonsRouter({ geosearchInfo: INFO_BYLLIS }),
+    });
+    const r = await lookupDestination("Albanie", "Albanie", { fetchImpl });
+    expect(r.imageUrl).toBe(
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Byllis-01-Alb.jpg/960px-Byllis-01-Alb.jpg",
+    );
+    // Ni géolocalisation ni recherche texte : c'est la recherche texte qui ramenait le sabre.
+    expect(calls.some((u) => u.includes("list=geosearch"))).toBe(false);
+    expect(calls.some((u) => u.includes("commons") && u.includes("generator=search"))).toBe(false);
+  });
+
+  it("ne répète pas le nom du pays dans la recherche", async () => {
+    const { fetchImpl, calls } = stubFetch({
+      "fr.wikipedia.org": (url: string) =>
+        url.includes("action=parse") ? IMAGES_ALBANIE : PAGE_ALBANIE,
+      "commons.wikimedia.org": commonsRouter({ geosearchInfo: INFO_BYLLIS }),
+    });
+    await lookupDestination("Maroc", "Maroc", { fetchImpl });
+    const recherche = decodeURIComponent(calls[0] ?? "").replace(/\+/g, " ");
+    expect(recherche).toContain("gsrsearch=Maroc&");
+    expect(recherche).not.toContain("Maroc Maroc");
+  });
+
+  it("écarte une photo de musée même quand « Musée » est encodé dans l'URL", async () => {
+    const PAGE_SABRE = structuredClone(PAGE_ALBANIE);
+    const page = PAGE_SABRE.query.pages["1"];
+    page.title = "Test sabre";
+    page.thumbnail.source =
+      "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9f/Sabre_yatagan-Albanie-Mus%C3%A9e_barrois_%28d%C3%A9tail%29.jpg/960px-Sabre_yatagan-Albanie-Mus%C3%A9e_barrois_%28d%C3%A9tail%29.jpg";
+    const { fetchImpl } = stubFetch({
+      "fr.wikipedia.org": (url: string) =>
+        url.includes("action=parse") ? { parse: { images: [] } } : PAGE_SABRE,
+      "commons.wikimedia.org": commonsRouter({}),
+    });
+    const r = await lookupDestination("Test sabre", "Pays du sabre", { fetchImpl });
+    expect(r.imageUrl).toBeNull();
+  });
+});
+
+describe("limite de requêtes et musées en d'autres langues", () => {
+  const page = (titre: string) => ({
+    batchcomplete: "",
+    query: {
+      pages: {
+        "1": {
+          pageid: 1,
+          ns: 0,
+          title: titre,
+          index: 1,
+          thumbnail: {
+            source: `https://upload.wikimedia.org/x/Flag_of_${titre}.svg/960px-Flag.svg.png`,
+            width: 960,
+            height: 640,
+          },
+          fullurl: `https://fr.wikipedia.org/wiki/${titre}`,
+        },
+      },
+    },
+  });
+  const info = (titre: string, url: string) => ({
+    title: titre,
+    imageinfo: [{ thumburl: url, thumbwidth: 960, thumbheight: 640, mime: "image/jpeg" }],
+  });
+
+  it("une réponse 429 de Wikimédia n'est pas mise en cache : l'appel suivant réessaie", async () => {
+    // Cas réel : pendant une rafale de fiches, Commons répond 429. Le lieu restait sans photo
+    // pour toute la vie du processus.
+    let appels = 0;
+    const fetchImpl = (async (input: string | URL | Request) => {
+      const url = input.toString();
+      appels += 1;
+      if (url.includes("commons.wikimedia.org"))
+        return new Response("Too many requests", { status: 429 });
+      if (url.includes("action=parse")) {
+        return Response.json({ parse: { images: ["Paysage_de_Testlande.jpg"] } });
+      }
+      return Response.json(page("Testlande"));
+    }) as typeof fetch;
+    const premier = await lookupDestination("Testlande", "Testlande", { fetchImpl });
+    const avant = appels;
+    await lookupDestination("Testlande", "Testlande", { fetchImpl });
+    expect(premier.imageUrl).toBeNull();
+    expect(appels).toBeGreaterThan(avant);
+  });
+
+  it("écarte un musée nommé en catalan ou en ouzbek, et garde la photo suivante", async () => {
+    // Cas réel : « Ouzbékistan » affichait « Amaliy San'at Muzeyi, Museu d'Arts Aplicades ».
+    const musee = "124_Amaliy_San'at_Muzeyi,_Museu_d'Arts_Aplicades.jpg";
+    const { fetchImpl } = stubFetch({
+      "fr.wikipedia.org": (url: string) =>
+        url.includes("action=parse")
+          ? { parse: { images: [musee, "Registan_Samarkand.jpg"] } }
+          : page("Ouzbékistan"),
+      "commons.wikimedia.org": commonsRouter({
+        geosearchInfo: {
+          query: {
+            pages: {
+              "-1": info(
+                `File:${musee.replace(/_/g, " ")}`,
+                "https://upload.wikimedia.org/muzeyi.jpg",
+              ),
+              "-2": info(
+                "File:Registan Samarkand.jpg",
+                "https://upload.wikimedia.org/registan.jpg",
+              ),
+            },
+          },
+        },
+      }),
+    });
+    const r = await lookupDestination("Ouzbékistan", "Ouzbékistan", { fetchImpl });
+    expect(r.imageUrl).toBe("https://upload.wikimedia.org/registan.jpg");
+  });
+});
