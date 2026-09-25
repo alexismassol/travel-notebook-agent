@@ -1,0 +1,163 @@
+/*
+ * Thème clair uniquement. "Carnet de terrain" est un objet papier : crème, encre, vert forêt,
+ * pas un écran qui s'adapte à la nuit : c'est le monde "papier" qui est la décision, quelle que
+ * soit l'heure à laquelle le voyageur écrit (chez lui, en journée ou en soirée). Aucune règle
+ * `prefers-color-scheme: dark` n'est ajoutée volontairement.
+ */
+:root {
+  /* ---------- Palette de marque : source unique de vérité pour toutes les couleurs ---------- */
+  --color-forest: #003526;
+  --color-cream: #f6f2e9;
+  --color-terracotta: #c75b39;
+  --color-sand: #e3dacb;
+  --color-ink: #1a1a1a;
+  --color-grey: #5c5c5c;
+
+  /* Dérivés (rôle documenté à côté de chacun) */
+  --color-surface-card: #fbf8f2; /* surface des cartes (choix, fiches, récapitulatif) */
+  --color-bubble-traveler: #ece4d6; /* bulle du voyageur */
+  --color-terracotta-tint: #f6e6de; /* sélection terracotta (fond des choix retenus) */
+  --color-terracotta-dark: #8c3a1e; /* texte terracotta lisible sur --color-terracotta-tint (6.3:1, voir plus bas) */
+  --color-forest-tint: #e4ece8; /* bandeau d'information vert (playbook activé) */
+  --color-update-highlight: #fbf1df; /* fond qui s'estompe sur une ligne du carnet qui vient de changer */
+  --color-terracotta-hover: #b34f30; /* survol du bouton d'envoi du message (terracotta assombri de ~10%) */
+  /* Bouton « Télécharger mon carnet de voyage ». Le terracotta de marque ne donne que 4,21:1 avec
+     du blanc en 16 px : sous le seuil AA de 4,5:1. Ces deux teintes le passent. */
+  --color-action: #b34f30; /* texte blanc : 5,15:1 */
+  --color-action-hover: #9e4228; /* texte blanc : 6,43:1 */
+  --color-white: #ffffff;
+
+  /* ---------- Rôles sémantiques ---------- */
+  --color-bg: var(--color-cream);
+  --color-surface: var(--color-surface-card);
+  --color-text: var(--color-ink);
+  --color-text-secondary: var(--color-grey);
+  --color-border: var(--color-sand);
+  --color-accent: var(--color-terracotta);
+  --color-link: var(--color-forest);
+
+  --color-agent-text: var(--color-ink);
+  --color-user-bg: var(--color-bubble-traveler);
+  --color-user-text: var(--color-ink);
+
+  /*
+   * Statuts d'un champ du carnet. Le sable neutre porte "à préciser" et "à définir" ; le pointillé
+   * gris (posé en bordure, pas ici) porte "à confirmer" ; la teinte terracotta foncée porte
+   * "à trancher" avec un texte assez sombre pour rester lisible sur son propre fond clair.
+   */
+  --color-status-vague-bg: var(--color-sand);
+  --color-status-vague-text: var(--color-text);
+  --color-status-inferred-border: var(--color-grey);
+  --color-status-inferred-text: var(--color-text-secondary);
+  --color-status-conflicting-bg: var(--color-terracotta-tint);
+  --color-status-conflicting-text: var(--color-terracotta-dark);
+
+  /* ---------- Typographie ---------- */
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  --text-xs: 0.8125rem; /* 13px - raisons, sous-titres discrets */
+  --text-sm: 0.875rem; /* 14px - libellés, métadonnées */
+  --text-base: 1rem; /* 16px - corps de texte, valeurs */
+  --text-md: 1.0625rem; /* 17px - questions à choix, corps large */
+  --text-lg: 1.1875rem; /* 19px - bouton principal */
+  --text-xl: 1.5rem; /* 24px - titre du carnet */
+  --text-2xl: 1.75rem; /* 28px - nom de destination */
+
+  --line-height-body: 1.6;
+  --measure: 65ch;
+
+  /* ---------- Espacement (échelle 4/8/12/16/24/32/48/64) ---------- */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+
+  /* ---------- Rayons ---------- */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+
+  /* ---------- Ombres : décalage + flou, jamais de halo ---------- */
+  --shadow-card: 0 1px 2px rgba(0, 53, 38, 0.06), 0 8px 24px rgba(0, 53, 38, 0.06);
+
+  /* ---------- Mouvement ---------- */
+  --transition-fast: 150ms ease;
+  --ease-out-exponential: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-highlight: 1200ms;
+  --duration-fill: 250ms;
+
+  /* ---------- Repères de mise en page ---------- */
+  --header-height: 64px;
+  --content-width: 720px;
+  --brief-width: 340px;
+  --page-max-width: 1200px;
+}
+
+/*
+ * Contrastes mesurés (WCAG 2.1, formule de luminance relative) pour les couples utilisés dans
+ * l'interface. Seuils : 4.5:1 texte courant, 3:1 grand texte gras (>= 18.66px bold).
+ *   encre / crème            15.58:1
+ *   gris / crème               5.99:1
+ *   vert forêt / crème        12.23:1
+ *   encre / surface carte     16.42:1
+ *   gris / surface carte       6.31:1
+ *   encre / bulle voyageur    13.79:1
+ *   vert forêt / bandeau info 11.36:1
+ *   gris / bandeau info         5.56:1
+ *   encre / sable              12.56:1
+ *   gris / sable                 4.83:1
+ *   vert forêt / bulle          10.82:1
+ *   blanc / terracotta (bouton)  4.21:1  -> réservé au texte >= 18.66px gras (seuil 3:1, passe)
+ *   terracotta / teinte terracotta (bordure/pastille, jamais du texte) 3.47:1
+ *   terracotta foncé / teinte terracotta (texte "à trancher")           6.31:1
+ */
+
+/* ---------- Surfaces navigateur thémées ---------- */
+::selection {
+  background: rgba(199, 91, 57, 0.2); /* terracotta 20% */
+  color: var(--color-ink);
+}
+
+html {
+  caret-color: var(--color-forest);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-forest);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Scrollbar fine sable (Firefox + WebKit/Chromium) */
+html {
+  /* La place de la barre de défilement est réservée en permanence : sans ça, déplier le carnet
+     sur une fenêtre étroite faisait sauter toute la page de quelques pixels. */
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-sand) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-sand);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

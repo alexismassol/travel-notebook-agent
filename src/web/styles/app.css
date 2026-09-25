@@ -1,0 +1,1915 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * `html` reste en dépassement visible : un `overflow-x: hidden` ici casse `position: sticky` sur
+ * le carnet : sans lui, le panneau sortait de l'écran au défilement. Le garde-fou
+ * horizontal reste sur `body`, et chaque passage de `npm run visual-check` vérifie 0 px de
+ * débordement sur les trois tailles d'écran.
+ */
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--line-height-body);
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  color: var(--color-forest);
+  margin: 0 0 var(--space-8);
+}
+
+p {
+  margin: 0 0 var(--space-8);
+}
+
+/*
+ * Vert forêt souligné plutôt que terracotta : un lien en texte courant sur crème ne passe l'AA
+ * qu'à ~3.8:1 avec le terracotta (sous 4.5:1). Le terracotta reste réservé aux choix et au téléchargement du carnet.
+ */
+a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+button {
+  font-family: var(--font-sans);
+}
+
+img {
+  max-width: 100%;
+}
+
+/* ---------- Motif : courbes de niveau (voir components/Contours.tsx) ---------- */
+
+.contours {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.contours path {
+  fill: none;
+  stroke: var(--color-forest);
+  stroke-width: 1;
+  opacity: 0.08;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------- Mise en page générale ---------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.app__header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-24);
+  background: var(--color-cream);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app__header-contours {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.app__header-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-8) var(--space-12);
+}
+
+.app__header h1 {
+  font-size: clamp(1.15rem, 4vw, 1.4rem);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.app__header-sub {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 420px) {
+  .app__header-sub {
+    display: none;
+  }
+}
+
+.app__layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-24);
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 var(--space-16) var(--space-24);
+  min-width: 0;
+}
+
+.app__chat {
+  order: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.brief-panel {
+  order: 1;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .app__layout {
+    grid-template-columns: minmax(0, 1fr) var(--brief-width);
+    align-items: start;
+    padding: var(--space-32) var(--space-24) var(--space-24);
+  }
+
+  .app__chat {
+    order: 1;
+    margin: 0;
+  }
+
+  .brief-panel {
+    order: 2;
+    /* Le carnet suit la conversation : sans ça, il fallait remonter en haut de page pour voir
+       une valeur qui vient de changer, signalé en usage réel. */
+    position: sticky;
+    /* L'en-tête est collé lui aussi : sans sa hauteur ici, 40 px du carnet passaient dessous et
+       ses premières lignes étaient coupées. */
+    top: calc(var(--header-height) + var(--space-24));
+    max-height: calc(100dvh - var(--header-height) - var(--space-48));
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* La dernière ligne visible s'efface au lieu d'être tranchée net par le bord de la carte. Le
+     dégradé n'apparaît que s'il reste du contenu dessous : la classe vient de BriefPanel.tsx, qui
+     mesure le débordement réel. */
+  .brief-panel--deborde::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: var(--space-32);
+    pointer-events: none;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    background: linear-gradient(to bottom, transparent, var(--color-surface));
+  }
+}
+
+/* Les détails techniques s'ouvrent depuis le bandeau, par-dessus la page. Sous la conversation,
+   ils rallongeaient le défilement : on croyait être arrivé en bas, et la page continuait. */
+.app__debug {
+  position: relative;
+  z-index: 2;
+  margin-left: auto;
+}
+
+.app__debug-toggle {
+  min-height: 44px;
+  padding: 0 var(--space-16);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  /* Fond blanc plein et texte vert : sur le crème du bandeau, par-dessus le motif de courbes, un
+     bouton transparent se voyait à peine. Le vert plein reste réservé à l'action principale,
+     « Envoyer », pour que les deux ne se disputent pas le regard. Vert sur blanc : 13,66:1. */
+  background: var(--color-white);
+  color: var(--color-forest);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.app__debug-toggle:hover {
+  border-color: var(--color-forest);
+  color: var(--color-forest);
+}
+
+.app__debug-toggle-short {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .app__debug-toggle-long {
+    display: none;
+  }
+
+  .app__debug-toggle-short {
+    display: inline;
+  }
+}
+
+.app__debug-panel {
+  position: absolute;
+  top: calc(100% + var(--space-8));
+  right: 0;
+  width: min(440px, calc(100vw - var(--space-32)));
+  max-height: min(60dvh, 420px);
+  overflow-y: auto;
+  z-index: 30;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-16);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.app__debug-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-8) var(--space-16);
+  margin: 0 0 var(--space-16);
+}
+
+.app__debug-grid dt {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.app__debug-grid dd {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.app__debug-aside {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.app__debug-subtitle {
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-8);
+}
+
+.app__debug-list {
+  margin: 0;
+  padding-left: var(--space-16);
+}
+
+.app-error {
+  max-width: 480px;
+  margin: var(--space-48) auto;
+  padding: var(--space-24);
+  text-align: center;
+  color: var(--color-text);
+}
+
+/* ---------- Suggestions d'accueil ---------- */
+
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  list-style: none;
+  margin: 0 0 var(--space-16);
+  padding: 0;
+}
+
+.suggestions__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-8) var(--space-12);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.suggestions__item:hover:not(:disabled) {
+  border-color: var(--color-forest);
+  box-shadow: var(--shadow-card);
+}
+
+.suggestions__item:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.suggestions__icon {
+  display: inline-flex;
+  color: var(--color-forest);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* ---------- Fil de conversation ---------- */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  /* La zone d'écriture est collée en bas : sans cette marge, la dernière ligne passe
+     derrière elle. */
+  padding: var(--space-24) 0 calc(var(--space-64) * 2);
+  flex: 1;
+}
+
+.chat__agent-turn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* Un bloc qui attend une action se cale sous le bandeau, pas dessous. */
+[data-bloc] {
+  scroll-margin-top: calc(var(--header-height) + var(--space-16));
+}
+
+/* Pastille de retour en bas : visible seulement quand le lecteur est remonté. Collée au bas de
+   la colonne de conversation, donc centrée sur elle et jamais sur la page entière. */
+.chat__vers-le-bas {
+  position: sticky;
+  /* Juste au-dessus de la ligne de séparation : la hauteur de la zone d'écriture est publiée
+     par Composer.tsx, donc la pastille suit quand le champ grandit. */
+  bottom: calc(var(--hauteur-composer, 96px) + var(--space-8));
+  align-self: center;
+  z-index: 6;
+  min-height: 44px;
+  padding: 0 var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-white);
+  color: var(--color-forest);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+
+.chat__error {
+  color: var(--color-ink);
+  background: var(--color-sand);
+  border-radius: var(--radius-sm);
+  padding: var(--space-8) var(--space-12);
+  font-size: var(--text-sm);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8) var(--space-12);
+}
+
+.chat__error p {
+  margin: 0;
+}
+
+/* Bouton de secours : lisible, mais jamais plus voyant que « Envoyer ». */
+.chat__error-retry {
+  min-height: 44px;
+  padding: 0 var(--space-16);
+  border: 1px solid var(--color-forest);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  color: var(--color-forest);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.chat__error-retry:hover {
+  background: var(--color-forest);
+  color: var(--color-cream);
+}
+
+.chat__thinking {
+  margin: 0;
+  color: var(--color-text-secondary);
+  align-self: flex-start;
+  padding-left: calc(28px + var(--space-8));
+}
+
+/* ---------- Bulles ---------- */
+
+.bubble {
+  max-width: 80%;
+}
+
+.bubble p:last-child {
+  margin-bottom: 0;
+}
+
+.bubble--agent {
+  display: flex;
+  gap: var(--space-8);
+  align-self: flex-start;
+  color: var(--color-agent-text);
+}
+
+.bubble__marker {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-forest);
+  color: var(--color-cream);
+  font-size: 15px;
+}
+
+/* Message suivant d'une même série : même retrait que la pastille, sans rond (moins de bruit). */
+.bubble__marker-spacer {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+}
+
+.bubble__content {
+  padding-top: var(--space-4);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bubble--agent strong {
+  color: var(--color-forest);
+  font-weight: 600;
+}
+
+.bubble--user {
+  background: var(--color-user-bg);
+  color: var(--color-user-text);
+  align-self: flex-end;
+  border-radius: var(--radius-lg) var(--radius-lg) var(--space-4) var(--radius-lg);
+  padding: var(--space-12) var(--space-16);
+  overflow-wrap: anywhere;
+}
+
+/* En dessous de 600px, le texte de l'agent prend toute la colonne (moins la pastille, réduite). */
+@media (max-width: 599px) {
+  .bubble--agent {
+    max-width: 100%;
+    gap: var(--space-8);
+  }
+
+  .bubble__marker,
+  .bubble__marker-spacer {
+    width: var(--space-24);
+    height: var(--space-24);
+  }
+
+  .chat__thinking {
+    padding-left: calc(var(--space-24) + var(--space-8));
+  }
+}
+
+/* ---------- Activité d'outil, réflexion et sources ---------- */
+
+.tool-activity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  align-self: flex-start;
+  margin: 0;
+  padding-left: calc(28px + var(--space-8));
+}
+
+.tool-activity__icon {
+  font-size: var(--text-base);
+  flex-shrink: 0;
+}
+
+/* Écran d'attente du tout premier chargement : rien d'autre que le souffle des points. */
+.app-booting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  background: var(--color-cream);
+}
+
+.breathing-dots {
+  display: inline-flex;
+  gap: var(--space-4);
+  margin-left: var(--space-4);
+}
+
+.breathing-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: breathing-dot 1.2s ease-in-out infinite;
+}
+
+.breathing-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.breathing-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes breathing-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.85);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* « Réduire les animations » vise le MOUVEMENT, pas le clignotement : des points figés ne disent
+   plus que ça charge, et ce réglage est actif chez beaucoup de monde. On garde donc le rythme, en
+   retirant le changement de taille, qui est la seule chose qui bouge vraiment. */
+@keyframes breathing-dot-sobre {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breathing-dots span {
+    animation-name: breathing-dot-sobre;
+  }
+}
+
+.sources {
+  align-self: flex-start;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  padding-left: calc(28px + var(--space-8));
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-8);
+}
+
+.sources__label {
+  font-weight: 600;
+}
+
+/* display: flex partout ci-dessous : évite l'alignement par ligne de base qui, combiné au
+   padding vertical des liens (zone cliquable), gonflait la hauteur de ligne et faisait
+   flotter "Sources" sous les liens au lieu de le garder à leur hauteur. */
+.sources__list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-4) 0;
+}
+
+.sources__list li {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 220px;
+}
+
+.sources__list a {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Zone cliquable >= 44px de haut sans agrandir le texte : le padding porte la hauteur. */
+  padding: var(--space-16) 0;
+}
+
+.sources__list li:not(:last-child)::after {
+  content: "·";
+  flex-shrink: 0;
+  margin: 0 var(--space-4);
+}
+
+.sources__more {
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Notice playbook ---------- */
+
+.playbook-notice {
+  align-self: flex-start;
+  display: flex;
+  gap: var(--space-8);
+  align-items: flex-start;
+  background: var(--color-forest-tint);
+  border-radius: var(--radius-sm);
+  padding: var(--space-8) var(--space-12);
+  max-width: 100%;
+}
+
+.playbook-notice__icon {
+  color: var(--color-forest);
+  font-size: var(--text-base);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.playbook-notice__title {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--color-forest);
+}
+
+.playbook-notice__reason {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Choix ---------- */
+
+/*
+ * Pas de carte autour de la question : seules les options sont des cartes (une carte dans une
+ * carte brouille la hiérarchie). La question reste un simple bloc de texte au-dessus d'elles.
+ */
+.choice-block {
+  max-width: 100%;
+}
+
+.choice-block__question {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+
+.choice-block__hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-12);
+}
+
+.choice-block__options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+  margin-bottom: var(--space-16);
+}
+
+@media (min-width: 560px) {
+  .choice-block__options {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.choice-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.choice-option:hover:not(:disabled) {
+  border-color: var(--color-forest);
+  box-shadow: var(--shadow-card);
+}
+
+.choice-option:disabled {
+  cursor: default;
+}
+
+.choice-option--selected {
+  background: var(--color-terracotta-tint);
+  border-color: var(--color-terracotta);
+}
+
+.choice-option--dimmed {
+  opacity: 0.5;
+}
+
+.choice-option__mark {
+  position: absolute;
+  top: var(--space-8);
+  right: var(--space-8);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-terracotta);
+  color: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.choice-option__label {
+  font-size: var(--text-base);
+  font-weight: 500;
+  padding-right: var(--space-24);
+}
+
+.choice-option__description {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.choice-block__freetext-input {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  margin-bottom: var(--space-16);
+  background: var(--color-white);
+  color: var(--color-text);
+}
+
+.choice-block__freetext {
+  font-style: italic;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-16);
+}
+
+.choice-block__ask {
+  /* Elle sépare les options du bouton : collée à l'un ou à l'autre, elle se lit comme une
+     légende du bouton au lieu d'une porte de sortie. */
+  margin: var(--space-16) 0 var(--space-16);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.choice-block__submit {
+  min-height: 44px;
+  background: var(--color-forest);
+  color: var(--color-cream);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-24);
+  cursor: pointer;
+  font-size: var(--text-base);
+}
+
+.choice-block__submit:disabled {
+  background: var(--color-sand);
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+/* ---------- Fiches destination ---------- */
+
+.destination-cards {
+  display: flex;
+  gap: var(--space-16);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: var(--space-8);
+  margin: 0 calc(var(--space-16) * -1);
+  padding-left: var(--space-16);
+  padding-right: var(--space-16);
+}
+
+.destination-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.destination-cards > .destination-card {
+  flex: 0 0 85%;
+  scroll-snap-align: start;
+}
+
+/* Une seule fiche : rien à faire défiler, elle prend toute la largeur, sur téléphone aussi. */
+.destination-cards--single > .destination-card {
+  flex-basis: 100%;
+}
+
+@media (min-width: 640px) {
+  .destination-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    overflow-x: visible;
+    margin: 0;
+    padding: 0;
+  }
+
+  .destination-cards > .destination-card {
+    flex: initial;
+  }
+
+  .destination-cards--single {
+    grid-template-columns: 1fr;
+  }
+}
+
+.destination-card__media {
+  aspect-ratio: 4 / 3;
+  background: var(--color-sand);
+  position: relative;
+  overflow: hidden;
+}
+
+.destination-card__media-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* Carte Wikipédia rendue en image (URL contenant ".svg") : on la garde entière, jamais coupée. */
+.destination-card__media-img--contain {
+  object-fit: contain;
+}
+
+.destination-card__placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.destination-card__placeholder .contours {
+  position: absolute;
+  inset: 0;
+}
+
+.destination-card__placeholder span {
+  position: relative;
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  color: var(--color-forest);
+}
+
+.destination-card__body {
+  padding: var(--space-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.destination-card__name {
+  font-size: var(--text-2xl);
+  margin: 0;
+}
+
+.destination-card__country {
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-8);
+  font-size: var(--text-sm);
+}
+
+.destination-card__summary {
+  margin-bottom: var(--space-8);
+}
+
+.destination-card__facts {
+  margin: 0 0 var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.destination-card__fact {
+  display: flex;
+  gap: var(--space-8);
+  align-items: flex-start;
+}
+
+.destination-card__fact-icon {
+  color: var(--color-forest);
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.destination-card__fact dt {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.destination-card__fact dd {
+  margin: 0;
+}
+
+.destination-card__watchout {
+  display: flex;
+  gap: var(--space-8);
+  align-items: flex-start;
+  background: var(--color-terracotta-tint);
+  color: var(--color-ink);
+  border-radius: var(--radius-sm);
+  padding: var(--space-8) var(--space-12);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-8);
+}
+
+.destination-card__watchout-icon {
+  color: var(--color-terracotta-dark);
+  font-size: var(--text-base);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.destination-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-16);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  min-height: 44px;
+  color: var(--color-forest);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.destination-card__links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.destination-card__map {
+  width: 100%;
+  height: 220px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- Carnet de voyage ---------- */
+
+.brief-panel__toggle {
+  position: sticky;
+  top: var(--header-height);
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+  background: var(--color-cream);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-8) var(--space-16);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-forest);
+  cursor: pointer;
+}
+
+.brief-panel__toggle-label {
+  flex-shrink: 0;
+}
+
+.brief-panel__chevron {
+  margin-left: auto;
+  transition: transform var(--transition-fast);
+}
+
+.brief-panel__chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.brief-panel__segments {
+  display: flex;
+  gap: var(--space-4);
+  flex: 1;
+  max-width: 120px;
+}
+
+.brief-panel__segment {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-sand);
+  overflow: hidden;
+}
+
+.brief-panel__segment::after {
+  content: "";
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--color-terracotta);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.brief-panel__segment--filled::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .brief-panel__segment::after {
+    transition: transform var(--duration-fill) var(--ease-out-exponential);
+  }
+}
+
+.brief-panel__content {
+  background: var(--color-surface);
+  padding: var(--space-16);
+}
+
+@media (max-width: 1023px) {
+  /* Le carnet entier colle sous l'en-tête. Posé sur le seul bouton, `sticky` n'avait aucune
+     marge (son conteneur faisait sa hauteur) : mesuré à -336 px après 400 px de défilement,
+     donc hors de l'écran. Déplié, le carnet défile à l'intérieur au lieu de couvrir la page. */
+  .brief-panel {
+    position: sticky;
+    top: var(--header-height);
+    z-index: 15;
+  }
+
+  .brief-panel__toggle {
+    position: static;
+  }
+
+  .brief-panel__content.is-expanded {
+    max-height: calc(100dvh - var(--header-height) - 44px - var(--space-16));
+    overflow-y: auto;
+  }
+
+  .brief-panel__content:not(.is-expanded) {
+    display: none;
+  }
+
+  .brief-panel__content.is-expanded {
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+
+@media (min-width: 1024px) {
+  .brief-panel__toggle {
+    display: none;
+  }
+
+  /* Un seul élément collé : le carnet. Sa carte défile à l'intérieur, pour que la barre de
+     défilement reste dans les angles arrondis au lieu de longer le bord de la page. */
+  .brief-panel__content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: var(--space-32);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    scrollbar-gutter: stable;
+  }
+
+  /* Barre de défilement du carnet : invisible au repos, une pastille sable au survol. Le carnet
+     déborde de peu, donc la barre était presque aussi haute que la carte et se lisait comme une
+     rayure décorative. Le dégradé du bas suffit à dire qu'il
+     reste du contenu. La place reste réservée : rien ne bouge quand la pastille apparaît. */
+  .brief-panel__content {
+    scrollbar-color: transparent transparent;
+  }
+
+  .brief-panel__content::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .brief-panel__content::-webkit-scrollbar-thumb {
+    background: transparent;
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+  }
+
+  /* `:focus-within` autant que `:hover` : au clavier, la pastille n'apparaissait jamais, donc
+     rien ne disait que le carnet défilait. */
+  .brief-panel:hover .brief-panel__content,
+  .brief-panel:focus-within .brief-panel__content {
+    scrollbar-color: var(--color-sand) transparent;
+  }
+
+  .brief-panel:hover .brief-panel__content::-webkit-scrollbar-thumb,
+  .brief-panel:focus-within .brief-panel__content::-webkit-scrollbar-thumb {
+    background: var(--color-sand);
+    background-clip: content-box;
+  }
+}
+
+.brief-panel__title {
+  font-size: var(--text-xl);
+}
+
+.brief-panel__progress {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .brief-panel__progress {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    margin-bottom: var(--space-16);
+  }
+
+  .brief-panel__progress .brief-panel__segments {
+    max-width: none;
+  }
+}
+
+.brief-panel__progress-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.brief-panel__empty {
+  position: relative;
+  border-radius: var(--radius-md);
+  padding: var(--space-32) var(--space-16);
+  text-align: center;
+  overflow: hidden;
+  margin-bottom: var(--space-16);
+}
+
+.brief-panel__empty-contours {
+  position: absolute;
+  inset: 0;
+}
+
+.brief-panel__empty p {
+  position: relative;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.brief-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  margin-bottom: var(--space-16);
+}
+
+.brief-panel__useful {
+  margin-bottom: var(--space-16);
+}
+
+/* Le repli du carnet est un `summary` cliquable : il doit rester une cible de 44 px. */
+summary.brief-panel__subtitle {
+  min-height: 44px;
+}
+
+.brief-panel__subtitle {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-forest);
+  cursor: pointer;
+  margin: 0 0 var(--space-12);
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  list-style: none;
+}
+
+.brief-panel__subtitle::-webkit-details-marker {
+  display: none;
+}
+
+.brief-panel__nuances-icon {
+  color: var(--color-forest);
+  font-size: var(--text-base);
+}
+
+.brief-panel__nuances ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.brief-panel__nuances li {
+  font-style: italic;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Ligne d'information (slot) ---------- */
+
+.slot-row {
+  border-radius: var(--radius-sm);
+}
+
+.slot-row__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-8);
+}
+
+.slot-row__icon {
+  color: var(--color-forest);
+  font-size: var(--text-base);
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.slot-row__title {
+  font-weight: 500;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+
+.slot-row__check {
+  color: var(--color-forest);
+  font-size: var(--text-base);
+  flex-shrink: 0;
+}
+
+.slot-row__value {
+  margin: 2px 0 0;
+  font-size: var(--text-base);
+  color: var(--color-text);
+}
+
+.slot-row__value--muted {
+  color: var(--color-text-secondary);
+}
+
+.slot-row__alternatives {
+  margin: var(--space-4) 0 0;
+  padding-left: var(--space-16);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.slot-row__reason {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .slot-row--changed {
+    animation: slot-highlight-fade var(--duration-highlight) var(--ease-out-exponential) forwards;
+  }
+}
+
+@keyframes slot-highlight-fade {
+  from {
+    background-color: var(--color-update-highlight);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+.badge {
+  font-size: var(--text-xs);
+  padding: 2px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--color-status-vague-bg);
+  color: var(--color-status-vague-text);
+}
+
+.badge--vague,
+.badge--unknown {
+  background: var(--color-status-vague-bg);
+  color: var(--color-status-vague-text);
+}
+
+.badge--inferred {
+  background: none;
+  border: 1px dashed var(--color-status-inferred-border);
+  color: var(--color-status-inferred-text);
+}
+
+.badge--conflicting {
+  background: var(--color-status-conflicting-bg);
+  color: var(--color-status-conflicting-text);
+}
+
+/* ---------- Récapitulatif du brief ---------- */
+
+.brief-summary {
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.brief-summary__title {
+  font-size: var(--text-xl);
+}
+
+.brief-summary__recap {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-16);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-16) 0;
+}
+
+@media (min-width: 480px) {
+  .brief-summary__recap {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.brief-summary__status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  font-weight: 600;
+  color: var(--color-forest);
+  margin: 0;
+}
+
+/* Recommencer après le carnet : une action discrète, jamais concurrente du récapitulatif. */
+/* Le carnet à emporter : action franche sur le bloc vert final, là où le voyageur regarde
+   déjà. Crème sur vert profond, 12,2:1. */
+.brief-summary__download {
+  min-height: 44px;
+  padding: 0 var(--space-16);
+  border: 1px solid var(--color-cream);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-cream);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.brief-summary__download:hover {
+  background: var(--color-cream);
+  color: var(--color-forest);
+}
+
+.brief-summary__restart {
+  min-height: 44px;
+  padding: 0 var(--space-8);
+  background: none;
+  border: none;
+  color: var(--color-forest);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.brief-summary__restart:hover {
+  color: var(--color-terracotta-dark);
+}
+
+/*
+ * Le seul vrai moment de récompense du parcours. Il était plat : même fond, même taille que le
+ * reste. Fond vert profond, respiration, et rien d'autre : ni icône de plus, ni animation.
+ */
+.brief-summary__status--sent {
+  background: var(--color-forest);
+  color: var(--color-cream);
+  border-radius: var(--radius-sm);
+  padding: var(--space-16);
+  font-size: var(--text-lg);
+}
+
+.brief-summary__status--sent .brief-summary__restart {
+  color: var(--color-cream);
+}
+
+.brief-summary__status--sent .brief-summary__restart:hover {
+  color: var(--color-sand);
+}
+
+.brief-summary__status-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/*
+ * Deux champs avant le téléchargement : sans eux, le carnet ne porte le nom de personne. Ils
+ * tiennent côte à côte dès qu'il y a la place, l'un sous l'autre sur téléphone.
+ */
+.brief-summary__contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+  margin-bottom: var(--space-16);
+}
+
+.brief-summary__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1 1 200px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.brief-summary__field input {
+  min-height: 44px;
+  background: var(--color-white);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  border: 1px solid var(--color-sand);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-12);
+}
+
+.brief-summary__field input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.brief-summary__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+  align-items: center;
+}
+
+.brief-summary__hint {
+  width: 100%;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.brief-summary__error {
+  width: 100%;
+  color: var(--color-ink);
+  background: var(--color-sand);
+  border-radius: var(--radius-sm);
+  padding: var(--space-8) var(--space-12);
+  font-size: var(--text-sm);
+}
+
+/*
+ * Bouton principal : texte blanc de 16 px sur un terracotta plus soutenu que celui de la marque.
+ * Mesuré dans un vrai navigateur : 4,21:1 avec le terracotta de marque, sous le seuil AA de
+ * 4,5:1 ; 5,15:1 avec --color-action, 6,43:1 au survol (voir tokens.css).
+ */
+.brief-summary__send {
+  /* Franc sans être lourd : 44 px suffisent à une action principale, et le gras d'un texte de
+     corps se lit mieux qu'un titre en majuscules dans une carte déjà dense. */
+  min-height: 44px;
+  background: var(--color-action);
+  color: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-24);
+  cursor: pointer;
+}
+
+.brief-summary__send:hover:not(:disabled) {
+  background: var(--color-action-hover);
+}
+
+.brief-summary__edit {
+  min-height: 44px;
+  background: none;
+  border: none;
+  color: var(--color-forest);
+  font-size: var(--text-base);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0 var(--space-8);
+  cursor: pointer;
+}
+
+.brief-summary__send:disabled,
+.brief-summary__edit:disabled {
+  /* Mêmes jetons que le composer désactivé : contraste déjà mesuré, pas une opacité au jugé. */
+  background: var(--color-sand);
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+/*
+ * Points de rupture, écrits en dur volontairement : une variable CSS ne peut pas servir dans une
+ * règle `@media`. 1024 px bascule le carnet du panneau latéral au bandeau repliable ; 560 px passe
+ * les questions à choix sur une colonne.
+ */
+
+/* ---------- Composer ---------- */
+
+.composer {
+  position: sticky;
+  bottom: 0;
+  background: var(--color-bg);
+  z-index: 5;
+}
+
+.composer__fade {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: linear-gradient(to bottom, transparent, var(--color-bg));
+  pointer-events: none;
+}
+
+.composer__bar {
+  display: flex;
+  /* La zone de saisie grandit avec le texte ; le bouton reste à sa taille, aligné en bas. */
+  align-items: flex-end;
+  gap: var(--space-8);
+  padding: var(--space-12) 0;
+  padding-bottom: calc(var(--space-12) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-border);
+}
+
+.composer__input {
+  flex: 1;
+  resize: none;
+  /* Hauteur pilotée par le composant (elle suit le texte), plafonnée ici : sur un téléphone,
+     une zone qui grandit trop pousse le bouton Envoyer hors de l'écran (mesuré sur iPhone 13). */
+  max-height: min(220px, 32dvh);
+  overflow-y: auto;
+  line-height: 1.5;
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  background: var(--color-white);
+  color: var(--color-text);
+  min-height: 44px;
+}
+
+.composer__input:disabled {
+  background: var(--color-sand);
+  color: var(--color-text-secondary);
+}
+
+.composer__send {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 44px;
+  background: var(--color-forest);
+  color: var(--color-cream);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-16);
+  cursor: pointer;
+  font-size: var(--text-base);
+}
+
+/* Arrêter : même emplacement et même taille que « Envoyer », couleur inversée. Le voyageur ne
+   cherche pas un nouveau bouton, il retrouve le même au même endroit. */
+.composer__send--stop {
+  background: var(--color-white);
+  color: var(--color-forest);
+  border: 1px solid var(--color-forest);
+}
+
+.composer__send--stop:hover {
+  background: var(--color-forest);
+  color: var(--color-cream);
+}
+
+.composer__send svg {
+  font-size: var(--text-base);
+}
+
+.composer__send:disabled {
+  background: var(--color-sand);
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+/* Le fil est là, le serveur ne l'a plus : un bandeau qui explique et propose la suite. */
+.app__reprise {
+  margin: 0 0 var(--space-8);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--color-forest-tint);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.app__reprise-bouton {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--color-forest);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.app__reprise-bouton:hover {
+  color: var(--color-terracotta-dark);
+}
+
+/* Liste des conversations gardées par le navigateur, à côté des détails techniques. */
+.conversations {
+  position: relative;
+  z-index: 2;
+  margin-left: auto;
+}
+
+.conversations__toggle {
+  min-height: 44px;
+  padding: 0 var(--space-16);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-forest);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.conversations__toggle:hover {
+  border-color: var(--color-forest);
+}
+
+.conversations__toggle-icone {
+  display: none;
+  font-size: var(--text-lg);
+}
+
+/* Sur téléphone, le titre touchait le bouton et la page débordait de 5 px à 360 px de large.
+   Le bouton passe en icône carrée de 44 px ; son nom reste lu par les lecteurs d'écran. */
+@media (max-width: 640px) {
+  .conversations__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    padding: 0;
+  }
+
+  .conversations__toggle-icone {
+    display: block;
+  }
+
+  .conversations__toggle-long {
+    display: none;
+  }
+
+  .app__debug {
+    margin-left: var(--space-8);
+  }
+}
+
+.conversations__panel {
+  position: absolute;
+  top: calc(100% + var(--space-8));
+  right: 0;
+  width: min(360px, calc(100vw - var(--space-32)));
+  max-height: min(60dvh, 420px);
+  overflow-y: auto;
+  z-index: 30;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-16);
+  text-align: left;
+}
+
+/* Sur téléphone, ancré à l'écran et non au bouton : l'icône de 44 px poussait le panneau de 79 px
+   hors de l'écran à gauche (mesuré à 320, 360 et 390 px). Placé après la règle de base, qui
+   gagnerait sinon. */
+@media (max-width: 640px) {
+  .conversations__panel {
+    position: fixed;
+    top: calc(var(--header-height) + var(--space-8));
+    left: var(--space-16);
+    right: var(--space-16);
+    width: auto;
+  }
+}
+
+.conversations__titre {
+  margin: 0 0 var(--space-8);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.conversations__vide {
+  margin: 0 0 var(--space-12);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.conversations__liste {
+  list-style: none;
+  margin: 0 0 var(--space-12);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.conversations__item {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.conversations__item:hover {
+  background: var(--color-bubble-traveler);
+}
+
+.conversations__item--courante {
+  border-color: var(--color-forest);
+}
+
+.conversations__item-titre {
+  display: block;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversations__item-detail {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+.conversations__nouvelle {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--color-forest);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-forest);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.conversations__nouvelle:hover {
+  background: var(--color-forest-tint);
+}
+
+.conversations__ligne {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-4);
+}
+
+.conversations__ligne .conversations__item {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Supprimer est discret au repos : l'action courante est d'ouvrir, pas d'effacer. */
+.conversations__supprimer {
+  flex: 0 0 auto;
+  width: 44px;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.conversations__supprimer:hover,
+.conversations__supprimer:focus-visible {
+  border-color: var(--color-terracotta-dark);
+  color: var(--color-terracotta-dark);
+}
+
+.conversations__confirme {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-12);
+  border-radius: var(--radius-sm);
+  background: var(--color-terracotta-tint);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.conversations__confirme-actions {
+  display: flex;
+  gap: var(--space-8);
+}
+
+.conversations__oui,
+.conversations__non {
+  min-height: 44px;
+  padding: 0 var(--space-12);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.conversations__oui {
+  border: 0;
+  background: var(--color-terracotta-dark);
+  color: var(--color-white);
+}
+
+.conversations__non {
+  border: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-text);
+}
