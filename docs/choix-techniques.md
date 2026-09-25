@@ -59,6 +59,7 @@ dépôt. Quand un chiffre est une hypothèse, c'est écrit.
 | 43 | Une fiche de pays montre une vraie photo du pays | « Albanie » montrait un sabre de musée, « Jordanie » une avenue de Paris |
 | 44 | Une phrase de coulisses ne s'affiche pas | « Je vais noter votre projet » dans 19 passages sur 48 |
 | 45 | Une hésitation sur le nombre se règle par un choix | « 4 ou 6 personnes » posé en texte, une fois sur trois |
+| 46 | L'exemple du prompt ne donne plus un fait sans recherche | L'exemple même affirmait une saison, contre la règle 2 |
 
 ## Qui a décidé
 
@@ -1387,3 +1388,25 @@ tour : noter, puis poser la question avec `ask_choice`, une option par nombre di
 choix sur Bali 3 fois sur 3, contre 1 sur 3 avant.
 
 **Où le voir.** `src/server/agent/brief/fidelity.ts`, `src/server/agent/context.ts`.
+
+## Décision 46 : L'exemple du prompt ne donne plus un fait sans recherche
+
+**Le problème, mesuré.** Le prompt donnait en exemple « Le Vietnam en novembre, c'est une bonne
+période. ». C'est une saison affirmée sans recherche, ce que la règle 2 du même prompt interdit. La
+relecture du scénario 2 a relevé cette faute dans le texte de l'agent.
+
+**Ce qu'on a fait.** L'exemple reprend les mots du voyageur sans affirmer de fait. Le prompt liste
+les superlatifs interdits, les mêmes que ceux que compte `reply-metrics.ts`. Il dit enfin de
+n'enregistrer que ce que le voyageur a dit ou choisi, jamais une proposition de l'agent.
+
+**Ce qu'on a écarté.** Retirer tout exemple : le prompt aurait dit quoi éviter, sans montrer quoi
+écrire. Le prompt reste figé : aucune date ni aucun état, donc le cache tient.
+
+**La preuve.** Une campagne de 48 passages, comparée à la précédente (`docs/scenarios/README.md`,
+annexe). Superlatifs 16 contre 21, deux questions dans un tour 9 contre 13, narration 5 contre 6.
+En sens inverse : réponses de plus de 80 mots 12 contre 6, questions à choix 19 contre 25.
+
+**La limite.** Une seule campagne de chaque côté : l'écart peut venir du hasard du modèle. Les
+réponses plus longues restent à surveiller à la prochaine mesure.
+
+**Où le voir.** `src/server/agent/system-prompt.ts`.
