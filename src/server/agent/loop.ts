@@ -7,7 +7,12 @@ import { type Conversation, expiresAtOf, MAX_TURNS_PER_CONVERSATION, trace } fro
 import { computeCompleteness } from "./brief/completeness";
 import { buildRequest, buildUserContent } from "./context";
 import { defautsDeTon } from "./reply-metrics";
-import { createVisibleTextFilter, stripForbiddenText } from "./text-guard";
+import {
+  createCoulissesFilter,
+  createVisibleTextFilter,
+  retirerCoulisses,
+  stripForbiddenText,
+} from "./text-guard";
 import { TOOLS_BY_NAME } from "./tools";
 import { BRIEF_TOOL_NAMES, briefGuidance, doitPoserLaQuestionUtile } from "./tools/brief-tools";
 import { findLeakedSyntax, malformedInput, type ToolOutcome, unreadableInput } from "./tools/types";
@@ -90,8 +95,8 @@ export async function runTurn(
   // que le modèle termine sans récapitulatif, le serveur le demande. Cas réel : "Vietnam, 3
   // semaines en novembre, à deux" complet 4/4 sans carnet présenté en fin de tour.
   const readyAtStart = computeCompleteness(conversation.brief).ready;
-  /** Tout ce que le voyageur a lu pendant ce tour, pour en mesurer le ton à la fin. */
-  let texteVu = "";
+  /** Le texte du modèle avant le filtre des coulisses : ses défauts de ton lui sont renvoyés. */
+  let texteEcrit = "";
   let forceToolNext: string | undefined;
   const snapshot = {
     briefOffered: conversation.briefOffered,
@@ -137,12 +142,12 @@ export async function runTurn(
         signal ? { signal } : undefined,
       );
       const visible = createVisibleTextFilter();
+      const coulisses = createCoulissesFilter();
       const emitText = (text: string) => {
         if (!text) return;
         usage.firstTextMs ??= Date.now() - startedAt;
         // Ce que le voyageur lit vraiment, gardé pour mesurer le ton du tour et le renvoyer au
         // modèle au tour suivant. Un rappel générique se dilue ; son propre défaut, non.
-        texteVu += text;
         emit({ type: "text_delta", text });
       };
       // Sans ça, chaque appel intermédiaire ajoute sa phrase d'annonce (« Voici trois
@@ -153,7 +158,9 @@ export async function runTurn(
       const live = call === 1;
       let held = "";
       stream.on("text", (text) => {
-        const clean = visible.push(text);
+        const lu = visible.push(text);
+        texteEcrit += lu;
+        const clean = coulisses.push(lu);
         if (live) emitText(clean);
         else held += clean;
       });
@@ -211,7 +218,9 @@ export async function runTurn(
           message.content[i] = emptied as unknown as (typeof message.content)[number];
         }
       }
-      const tail = visible.flush();
+      const finVisible = visible.flush();
+      texteEcrit += finVisible;
+      const tail = coulisses.push(finVisible) + coulisses.flush();
       if (live) {
         emitText(tail);
       } else {
@@ -224,6 +233,21 @@ export async function runTurn(
           toolNames.includes("show_destination_cards") &&
           !toolNames.some((name) => WAITS_FOR_TRAVELLER.has(name));
         if (!announcesCards) emitText(held + tail);
+      }
+      if (coulisses.retirees > 0) {
+        // Retirées aussi du texte stocké, avant l'ajout à l'historique : le modèle ne revoit pas
+        // sa tournure, et ne la reprend pas au tour suivant.
+        for (const block of message.content) {
+          if (block.type === "text") block.text = retirerCoulisses(block.text);
+        }
+        conversation.coulissesRetirees += coulisses.retirees;
+        void trace({
+          conversationId: conversation.id,
+          turn,
+          at: now().toISOString(),
+          kind: "coulisses_retirees",
+          count: coulisses.retirees,
+        });
       }
       if (visible.leaked) {
         // Le texte stocké est nettoyé AVANT d'entrer dans l'historique (ajout, pas réécriture),
@@ -481,7 +505,9 @@ export async function runTurn(
     usage,
     stopReasons,
   });
-  conversation.lastReplyDefects = defautsDeTon(texteVu);
+  // Mesuré sur ce que le modèle a écrit, pas sur ce que le filtre a laissé passer : une phrase
+  // de coulisses retirée reste un défaut à lui signaler au tour suivant.
+  conversation.lastReplyDefects = defautsDeTon(texteEcrit);
   emit({
     type: "turn_end",
     awaiting,

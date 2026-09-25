@@ -17,7 +17,7 @@ const SUPERLATIVE = word(
 );
 // Mesuré sur les transcriptions : la phrase d'attente raconte souvent le travail de l'agent
 // au lieu de parler du voyage. « Permettez-moi d'enregistrer », « Enregistré », « C'est noté ».
-const NARRATION = word(
+export const NARRATION = word(
   "laissez-moi (?:corriger|enregistrer|noter|ajouter|mettre à jour)|permettez-moi d'(?:enregistrer|ajouter|noter|mettre à jour)|une dernière correction|je corrige|je vais (?:enregistrer|noter|mettre à jour|corriger|charger)|j'enregistre|je note|je mets à jour|je charge|enregistré|enregistrons|c'est noté|je viens de (?:noter|mettre à jour)|est enregistré|je dois (?:d'abord )?(?:clarifier|comprendre)|charger les instructions|les instructions spécialisées",
 );
 const JARGON = word("brief|briefs");

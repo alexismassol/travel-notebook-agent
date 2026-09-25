@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { createVisibleTextFilter, repairEscapes, stripForbiddenText } from "./text-guard";
+import {
+  createCoulissesFilter,
+  createVisibleTextFilter,
+  repairEscapes,
+  retirerCoulisses,
+  stripForbiddenText,
+} from "./text-guard";
 
 function streamThrough(chunks: string[]) {
   const filter = createVisibleTextFilter();
@@ -274,5 +280,74 @@ describe("la ponctuation double ne part jamais seule à la ligne", () => {
 
   it("une ponctuation collée au mot n'est pas touchée", () => {
     expect(montre("Combien de nuits?")).toBe("Combien de nuits?");
+  });
+});
+
+/**
+ * Phrases de coulisses : 19 passages sur 48 de la campagne du 2026-09-25 disaient au voyageur
+ * « Je vais noter votre projet et charger les instructions ». Le prompt ne suffit pas : le
+ * filtre les retire avant l'écran, et du texte gardé dans l'historique.
+ */
+describe("filtre des phrases de coulisses", () => {
+  const passer = (fragments: string[]) => {
+    const filtre = createCoulissesFilter();
+    const vu = fragments.map((f) => filtre.push(f)).join("") + filtre.flush();
+    return { vu, retirees: filtre.retirees };
+  };
+
+  it("retire la phrase de coulisses, même coupée en fragments", () => {
+    const { vu, retirees } = passer([
+      "Je vais noter votre pro",
+      "jet et charger les instructions pour vous surprendre. ",
+      "Laquelle de ces trois idées vous tente ?",
+    ]);
+    expect(vu).toBe("Laquelle de ces trois idées vous tente ?");
+    expect(retirees).toBe(1);
+  });
+
+  it("garde une phrase qui commence par « Je » sans raconter les coulisses", () => {
+    const { vu, retirees } = passer(["Je vous propose trois idées rares. Voici la première."]);
+    expect(vu).toBe("Je vous propose trois idées rares. Voici la première.");
+    expect(retirees).toBe(0);
+  });
+
+  it("garde une question, même si elle commence comme des coulisses", () => {
+    const { vu } = passer(["Je note que vous partez à deux, c'est bien ça ?"]);
+    expect(vu).toBe("Je note que vous partez à deux, c'est bien ça ?");
+  });
+
+  it("laisse passer tout de suite une phrase qui ne commence pas comme des coulisses", () => {
+    const filtre = createCoulissesFilter();
+    expect(filtre.push("Le Vietnam en novembre, c'est la saison sèche")).toBe(
+      "Le Vietnam en novembre, c'est la saison sèche",
+    );
+  });
+
+  it("garde une phrase qui rapporte un fait du voyageur", () => {
+    const phrase = "Je note que vous êtes quatre personnes pour un trek au Népal en avril.";
+    expect(passer([phrase]).vu).toBe(phrase);
+    expect(retirerCoulisses(phrase)).toBe(phrase);
+  });
+
+  it("retire en flux une phrase ouverte par une interjection ou un tiret, comme dans l'historique", () => {
+    const mots = (texte: string) => texte.split(/(?<= )/);
+    const interjection = passer(mots("Parfait, c'est noté. Pour combien de temps ?"));
+    expect(interjection.vu).toBe("Pour combien de temps ?");
+    const liste = passer(mots("- Je vais enregistrer votre projet.\nQuelle période vous tente ?"));
+    expect(liste.vu).toBe("Quelle période vous tente ?");
+  });
+
+  it("montre une phrase en « Je » dès ses premiers mots, sans attendre son point", () => {
+    const filtre = createCoulissesFilter();
+    const vu = ["Je ", "vous ", "propose ", "trois ", "idées ", "rares ", "pour ", "mars"]
+      .map((f) => filtre.push(f))
+      .join("");
+    expect(vu).toBe("Je vous propose trois idées rares pour mars");
+  });
+
+  it("nettoie aussi le texte stocké dans l'historique", () => {
+    expect(retirerCoulisses("C'est noté. Le Vietnam en novembre, c'est la saison sèche.")).toBe(
+      "Le Vietnam en novembre, c'est la saison sèche.",
+    );
   });
 });

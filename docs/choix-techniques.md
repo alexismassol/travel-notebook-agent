@@ -57,6 +57,7 @@ dépôt. Quand un chiffre est une hypothèse, c'est écrit.
 | 41 | Un carnet validé ne se représente pas | Le tour de remerciement rouvrait le récapitulatif |
 | 42 | Un troisième playbook pour le voyage surprise | « Surprenez-moi » ne veut pas dire répondre à un questionnaire |
 | 43 | Une fiche de pays montre une vraie photo du pays | « Albanie » montrait un sabre de musée, « Jordanie » une avenue de Paris |
+| 44 | Une phrase de coulisses ne s'affiche pas | « Je vais noter votre projet » dans 19 passages sur 48 |
 
 ## Qui a décidé
 
@@ -1343,3 +1344,29 @@ Wikipédia : Byllis pour l'Albanie, la forêt d'Ajloun pour la Jordanie, une fer
 une rizière de la baie d'Halong pour le Vietnam, le Geirangerfjord pour la Norvège.
 
 **Où le voir.** `src/server/agent/destination-lookup.ts`.
+
+## Décision 44 : Une phrase de coulisses ne s'affiche pas
+
+**Le problème, mesuré.** Sur la campagne du 2026-09-25, 19 passages sur 48 montraient au voyageur
+une phrase comme « Je vais noter votre projet et charger les instructions ». Le prompt l'interdit,
+avec l'exemple exact : le modèle l'écrit quand même, avant tout appel d'outil.
+
+**Ce qu'on a fait.** Un filtre en code (`createCoulissesFilter`, `text-guard.ts`) retire une phrase
+courte, sans question, qui ne fait que raconter le travail de l'agent (motifs de `reply-metrics.ts`).
+Il ne retient que les phrases qui commencent comme des coulisses : les autres s'affichent mot à mot.
+La phrase disparaît aussi du texte gardé dans l'historique, avant son ajout. Le défaut reste
+signalé au modèle au tour suivant, et chaque retrait laisse une trace `coulisses_retirees`.
+
+La relecture du serveur a trouvé deux trous, reproduits sur le vrai code puis corrigés. « Je note
+que vous êtes quatre pour un trek au Népal » disparaissait : une phrase qui rapporte un fait du
+voyageur reste désormais. « Parfait, c'est noté. » passait au fil de l'eau mais sortait de
+l'historique : une interjection ou un tiret devant ne change plus la règle. Une phrase en « Je »
+n'est plus retenue jusqu'à son point : au-delà de 30 lettres sans verbe de coulisses, elle s'affiche.
+
+**Ce qu'on a écarté.** Retirer toute phrase qui contient « c'est noté » : « Vous partez à deux à
+Bali en juillet, c'est noté » donne une vraie information au voyageur.
+
+**La preuve.** Six tests, vus rouges puis verts, sabotage vérifié. Campagne réelle suivante :
+une phrase visible dans 6 passages sur 48, et 30 phrases retirées sur les deux campagnes.
+
+**Où le voir.** `src/server/agent/text-guard.ts`, `src/server/agent/loop.ts`.

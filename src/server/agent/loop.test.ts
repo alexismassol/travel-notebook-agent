@@ -761,3 +761,26 @@ describe("après une recherche, on montre des lieux, on ne questionne pas", () =
     expect(awaiting).toBe("choice");
   });
 });
+
+describe("phrases de coulisses", () => {
+  it("ne s'affichent pas, ne restent pas dans l'historique, et sont comptées", async () => {
+    const conversation = new ConversationStore().create();
+    const { events } = await turn(conversation, [
+      reply(
+        [
+          {
+            type: "text",
+            text: "Je vais noter votre projet et charger les instructions. Le Vietnam en novembre est une bonne période.",
+          },
+        ],
+        "end_turn",
+      ),
+    ]);
+    const vu = events.flatMap((e) => (e.type === "text_delta" ? [e.text] : [])).join("");
+    expect(vu).toBe("Le Vietnam en novembre est une bonne période.");
+    expect(JSON.stringify(conversation.messages.at(-1))).not.toMatch(/Je vais noter/);
+    expect(conversation.coulissesRetirees).toBe(1);
+    // Le défaut reste signalé au modèle pour le tour suivant.
+    expect(conversation.lastReplyDefects.join(" ")).toMatch(/raconté ton travail/);
+  });
+});

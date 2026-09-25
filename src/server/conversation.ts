@@ -59,6 +59,8 @@ export interface Conversation {
   briefOffered: boolean;
   /** Défauts de ton du dernier tour, renvoyés au modèle au tour suivant. */
   lastReplyDefects: string[];
+  /** Phrases de coulisses retirées par `createCoulissesFilter` : le modèle les écrit, le voyageur ne les voit pas. */
+  coulissesRetirees: number;
   playbooks: PlaybookLoad[];
   /**
    * Rappels envoyés, avec la longueur de l'historique au moment du rappel. Le modèle ne voit le
@@ -104,6 +106,7 @@ export class ConversationStore {
       usefulAsked: 0,
       briefOffered: false,
       lastReplyDefects: [],
+      coulissesRetirees: 0,
       playbooks: [],
       nudgedPlaybooks: new Map(),
       sentAt: null,
@@ -158,6 +161,7 @@ export type TraceRecord = { conversationId: string; turn: number; at: string } &
   | { kind: "playbook_nudge"; name: string }
   | { kind: "turn_usage"; usage: unknown; stopReasons: string[] }
   | { kind: "text_leak" }
+  | { kind: "coulisses_retirees"; count: number }
   /** État du brief après chaque mise à jour : rend calculables "atteint prêt" et "tours jusqu'à prêt". */
   | { kind: "brief_state"; version: number; mandatoryOk: number; ready: boolean }
   | { kind: "error"; message: string }

@@ -1,3 +1,5 @@
+import { NARRATION } from "./reply-metrics";
+
 /**
  * Garde-fou sur le texte VISIBLE par le voyageur.
  *
@@ -201,4 +203,113 @@ export function createVisibleTextFilter() {
 export function stripForbiddenText(text: string): string {
   const cut = findForbiddenTag(text);
   return nettoyerTexteVisible(cut === -1 ? text : text.slice(0, cut).trimEnd());
+}
+
+/**
+ * Phrases de coulisses : « Je vais noter votre projet et charger les instructions ». Mesuré sur
+ * la campagne du 2026-09-25 : 19 passages sur 48 en contenaient une, malgré le prompt. Une phrase
+ * courte, sans question, qui ne fait que raconter le travail de l'agent est retirée.
+ *
+ * Pour garder l'affichage mot à mot, seule une phrase qui COMMENCE comme des coulisses est
+ * retenue jusqu'à son point. Les autres passent dès leurs premiers mots : au bout de 12 lettres
+ * si elles ne peuvent pas en être, de 30 lettres au plus sinon. Une interjection (« Parfait, ») ou
+ * un tiret de liste devant ne change rien : le flux et l'historique suivent la même règle.
+ */
+const DEVANT =
+  "^\\s*(?:[-*•]\\s+)?(?:(?:parfait|très bien|d['’]accord|entendu|super|ok|bien|merci)\\s*[,!.]?\\s*)?";
+const DEBUT_POSSIBLE = new RegExp(
+  `${DEVANT}(?:parfait|très|d['’]|entendu|super|ok|bien|merci|je\\b|j['’]|laissez|permettez|c['’]est|not|enregistr|une dernière|cherchons|[-*•])`,
+  "i",
+);
+const OUVERTURE_COULISSES = new RegExp(
+  `${DEVANT}(?:je (?:vais (?:enregistrer|noter|mettre|corriger|charger)|note|mets|charge|corrige|viens|dois|enregistre)\\b|j['’]enregistre|j['’]ai (?:noté|enregistré)|laissez|permettez|c['’]est not|bien not|not[ée]|enregistr|une dernière|cherchons)`,
+  "i",
+);
+const FIN_DE_PHRASE = /[.!?…](?=\s|$)|\n/;
+const MOTS_MAX_COULISSES = 20;
+/** Au-delà, on sait si la phrase PEUT commencer comme des coulisses. */
+const LETTRES_POUR_DECIDER = 12;
+/** Au-delà, on sait si elle commence VRAIMENT comme des coulisses. */
+const LETTRES_POUR_TRANCHER = 30;
+const NARRATION_UNE = new RegExp(NARRATION.source, "iu");
+/** « Je note que vous partez à quatre » rapporte un fait du voyageur : la phrase reste. */
+const FAIT_RAPPORTE = /\b(?:not\w*|enregistr\w*|retiens)\s+qu(?:e\b|['’])/i;
+
+export function estPhraseDeCoulisses(phrase: string): boolean {
+  const texte = phrase.trim();
+  if (!texte || texte.includes("?")) return false;
+  if (texte.split(/\s+/).length > MOTS_MAX_COULISSES) return false;
+  if (FAIT_RAPPORTE.test(texte)) return false;
+  return NARRATION_UNE.test(texte);
+}
+
+export function createCoulissesFilter() {
+  let phrase = "";
+  let mode: "debut" | "retenue" | "libre" = "debut";
+  let retirees = 0;
+  let dejaMontre = false;
+
+  const trancher = (complete: string): string => {
+    if (!estPhraseDeCoulisses(complete)) return complete;
+    retirees += 1;
+    return "";
+  };
+  // Une réponse ne commence pas par l'espace qui suivait une phrase retirée.
+  const sortir = (texte: string): string => {
+    const net = dejaMontre ? texte : texte.replace(/^\s+/, "");
+    if (net) dejaMontre = true;
+    return net;
+  };
+
+  return {
+    get retirees() {
+      return retirees;
+    },
+    push(delta: string): string {
+      let sortie = "";
+      let reste = delta;
+      while (reste) {
+        const fin = FIN_DE_PHRASE.exec(reste);
+        const bout = fin ? fin.index + fin[0].length : reste.length;
+        if (mode === "libre") {
+          sortie += reste.slice(0, bout);
+          reste = reste.slice(bout);
+          if (fin) mode = "debut";
+          continue;
+        }
+        phrase += reste.slice(0, bout);
+        reste = reste.slice(bout);
+        if (fin) {
+          sortie += trancher(phrase);
+          phrase = "";
+          mode = "debut";
+        } else if (mode === "debut") {
+          const lettres = phrase.replace(/\s/g, "").length;
+          const libre =
+            (lettres >= LETTRES_POUR_DECIDER && !DEBUT_POSSIBLE.test(phrase)) ||
+            (lettres >= LETTRES_POUR_TRANCHER && !OUVERTURE_COULISSES.test(phrase));
+          if (libre) {
+            sortie += phrase;
+            phrase = "";
+            mode = "libre";
+          } else if (lettres >= LETTRES_POUR_TRANCHER) {
+            mode = "retenue";
+          }
+        }
+      }
+      return sortir(sortie);
+    },
+    flush(): string {
+      const reste = phrase ? trancher(phrase) : "";
+      phrase = "";
+      mode = "debut";
+      return sortir(reste);
+    },
+  };
+}
+
+/** Même règle sur un texte entier, pour l'historique : le modèle ne réapprend pas la tournure. */
+export function retirerCoulisses(texte: string): string {
+  const filtre = createCoulissesFilter();
+  return filtre.push(texte) + filtre.flush();
 }
