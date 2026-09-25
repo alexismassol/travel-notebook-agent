@@ -2,28 +2,37 @@
 
 Généré par `npm run scenarios`. Chaque ligne renvoie à la transcription complète.
 
+Trois mesures réelles du 2026-09-25 composent cette page, sur le même code de scénarios.
+
+- Le tableau des taux vient de la campagne du filtre des phrases de coulisses (décision 44).
+- Le premier passage et ses transcriptions viennent de la campagne précédente, avant ce filtre.
+- L'annexe mesure le prompt de la décision 46, sur 48 passages de plus.
+
+Les transcriptions des deux dernières campagnes n'ont pas été gardées : seuls leurs tableaux le sont.
+Le code livré ajoute les décisions 44 à 47 durcies : une nouvelle campagne n'a pas été lancée depuis.
+
 ## Taux sur 3 passages par scénario
 
 | Scénario | 4/4 atteint | Carnet validé | Fiche affichée | Question à choix | Recherche web | Tutoiement | Superlatif | Narration | « brief » | 2 questions | Réponse > 80 mots | Coût moyen | Tour le plus long (ms) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Destination ouverte, en famille | 0/3 | 0/3 | 3/3 | 2/3 | 2/3 | 0/3 | 3/3 | 2/3 | 0/3 | 0/3 | 0/3 | 0.0446 $ | 42720 |
-| Informations déjà complètes | 3/3 | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 3/3 | 2/3 | 0/3 | 0/3 | 1/3 | 0.0171 $ | 14228 |
-| Demande de conseil qui se heurte à la réalité | 0/3 | 0/3 | 0/3 | 1/3 | 3/3 | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 | 3/3 | 0.0196 $ | 8443 |
-| Envie floue à ancrer | 0/3 | 0/3 | 3/3 | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0.0229 $ | 18677 |
-| Dépaysement sans la foule | 0/3 | 0/3 | 2/3 | 0/3 | 2/3 | 0/3 | 0/3 | 0/3 | 0/3 | 1/3 | 0/3 | 0.0461 $ | 31391 |
-| Contradiction dans la durée | 1/3 | 0/3 | 1/3 | 1/3 | 1/3 | 0/3 | 3/3 | 2/3 | 0/3 | 0/3 | 0/3 | 0.0226 $ | 20824 |
-| Composition variable (question à choix attendue) | 0/3 | 0/3 | 0/3 | 1/3 | 0/3 | 0/3 | 3/3 | 1/3 | 0/3 | 0/3 | 0/3 | 0.0110 $ | 11254 |
-| Tout donné dès le premier message | 3/3 | 3/3 | 0/3 | 0/3 | 2/3 | 0/3 | 3/3 | 2/3 | 0/3 | 0/3 | 2/3 | 0.0226 $ | 16312 |
-| Le voyageur ne sait pas et le dit | 0/3 | 0/3 | 1/3 | 3/3 | 1/3 | 0/3 | 2/3 | 3/3 | 0/3 | 3/3 | 0/3 | 0.0292 $ | 31029 |
-| Le voyageur hésite à partir | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 3/3 | 0/3 | 0.0094 $ | 7986 |
-| Demande hors sujet, puis retour au voyage | 0/3 | 0/3 | 0/3 | 3/3 | 0/3 | 0/3 | 1/3 | 2/3 | 0/3 | 0/3 | 0/3 | 0.0125 $ | 6295 |
-| Le voyageur se contredit dans la même phrase | 0/3 | 0/3 | 0/3 | 2/3 | 0/3 | 0/3 | 0/3 | 1/3 | 0/3 | 1/3 | 0/3 | 0.0095 $ | 10596 |
-| Le voyageur pressé veut son carnet tout de suite | 0/3 | 0/3 | 0/3 | 3/3 | 2/3 | 0/3 | 2/3 | 0/3 | 0/3 | 1/3 | 0/3 | 0.0212 $ | 9717 |
-| Le voyageur écrit en anglais | 0/3 | 0/3 | 0/3 | 1/3 | 1/3 | 0/3 | 0/3 | 0/3 | 0/3 | 1/3 | 0/3 | 0.0161 $ | 15393 |
-| Le voyageur pose les questions | 0/3 | 0/3 | 3/3 | 2/3 | 3/3 | 0/3 | 3/3 | 2/3 | 0/3 | 2/3 | 2/3 | 0.0651 $ | 22810 |
-| Le voyageur veut être surpris | 0/3 | 0/3 | 2/3 | 0/3 | 3/3 | 0/3 | 1/3 | 2/3 | 0/3 | 2/3 | 1/3 | 0.0613 $ | 48125 |
+| Destination ouverte, en famille | 0/3 | 0/3 | 3/3 | 2/3 | 3/3 | 0/3 | 3/3 | 1/3 | 0/3 | 0/3 | 0/3 | 0.0474 $ | 40593 |
+| Informations déjà complètes | 3/3 | 3/3 | 0/3 | 0/3 | 2/3 | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0.0223 $ | 11045 |
+| Demande de conseil qui se heurte à la réalité | 0/3 | 0/3 | 0/3 | 2/3 | 3/3 | 0/3 | 1/3 | 0/3 | 0/3 | 0/3 | 3/3 | 0.0206 $ | 11235 |
+| Envie floue à ancrer | 0/3 | 0/3 | 3/3 | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0.0266 $ | 23834 |
+| Dépaysement sans la foule | 0/3 | 0/3 | 1/3 | 1/3 | 1/3 | 0/3 | 1/3 | 1/3 | 0/3 | 0/3 | 0/3 | 0.0205 $ | 28882 |
+| Contradiction dans la durée | 1/3 | 0/3 | 0/3 | 2/3 | 0/3 | 0/3 | 1/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0.0161 $ | 9874 |
+| Composition variable (question à choix attendue) | 0/3 | 0/3 | 0/3 | 3/3 | 0/3 | 0/3 | 1/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0.0114 $ | 10113 |
+| Tout donné dès le premier message | 3/3 | 3/3 | 0/3 | 0/3 | 1/3 | 0/3 | 3/3 | 0/3 | 0/3 | 1/3 | 1/3 | 0.0205 $ | 12615 |
+| Le voyageur ne sait pas et le dit | 0/3 | 0/3 | 0/3 | 3/3 | 0/3 | 0/3 | 1/3 | 2/3 | 0/3 | 3/3 | 0/3 | 0.0198 $ | 6792 |
+| Le voyageur hésite à partir | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 2/3 | 0/3 | 0.0096 $ | 5788 |
+| Demande hors sujet, puis retour au voyage | 0/3 | 0/3 | 0/3 | 2/3 | 0/3 | 0/3 | 3/3 | 0/3 | 0/3 | 1/3 | 0/3 | 0.0121 $ | 7895 |
+| Le voyageur se contredit dans la même phrase | 0/3 | 0/3 | 0/3 | 2/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0.0100 $ | 7866 |
+| Le voyageur pressé veut son carnet tout de suite | 0/3 | 0/3 | 0/3 | 3/3 | 1/3 | 0/3 | 1/3 | 1/3 | 0/3 | 2/3 | 0/3 | 0.0182 $ | 10052 |
+| Le voyageur écrit en anglais | 0/3 | 0/3 | 0/3 | 2/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 1/3 | 0/3 | 0.0130 $ | 9128 |
+| Le voyageur pose les questions | 0/3 | 0/3 | 3/3 | 3/3 | 3/3 | 0/3 | 3/3 | 1/3 | 0/3 | 1/3 | 2/3 | 0.0611 $ | 20172 |
+| Le voyageur veut être surpris | 0/3 | 0/3 | 2/3 | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 2/3 | 0/3 | 0.0668 $ | 54570 |
 
-Total de tous les passages : 1.2928 $ en tokens, 30 recherche(s) web.
+Total de tous les passages : 1.1883 $ en tokens, 26 recherche(s) web.
 
 ## Premier passage (transcriptions)
 
@@ -47,3 +56,29 @@ Total de tous les passages : 1.2928 $ en tokens, 30 recherche(s) web.
 | [Le voyageur veut être surpris](16-surprenez-moi.md) | 1 | 3/4 | non | voyage-surprise (spontaneous) | 1 | non | 0 | 35268 | 0.0521 $ |
 
 Total : 0.5481 $ en tokens, 9 recherche(s) web facturées en plus. Durées mesurées côté serveur, du message reçu à la fin du tour.
+
+## Annexe : taux après le prompt de la décision 46
+
+Même campagne de 48 passages, avec le nouveau prompt et la première version du filtre. Un
+passage du mode surprise s'est arrêté sur une recherche web illisible, corrigée ensuite (décision 47).
+
+| Scénario | 4/4 atteint | Carnet validé | Fiche affichée | Question à choix | Recherche web | Tutoiement | Superlatif | Narration | « brief » | 2 questions | Réponse > 80 mots | Coût moyen | Tour le plus long (ms) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Destination ouverte, en famille | 0/3 | 0/3 | 3/3 | 0/3 | 3/3 | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 | 1/3 | 0.0418 $ | 33042 |
+| Informations déjà complètes | 3/3 | 3/3 | 0/3 | 0/3 | 2/3 | 0/3 | 1/3 | 1/3 | 0/3 | 0/3 | 2/3 | 0.0219 $ | 15716 |
+| Demande de conseil qui se heurte à la réalité | 0/3 | 0/3 | 0/3 | 1/3 | 3/3 | 0/3 | 1/3 | 0/3 | 0/3 | 0/3 | 3/3 | 0.0197 $ | 12439 |
+| Envie floue à ancrer | 0/3 | 0/3 | 3/3 | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0.0253 $ | 17795 |
+| Dépaysement sans la foule | 0/3 | 0/3 | 1/3 | 0/3 | 1/3 | 0/3 | 1/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0.0257 $ | 43658 |
+| Contradiction dans la durée | 1/3 | 0/3 | 0/3 | 2/3 | 0/3 | 0/3 | 2/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0.0166 $ | 12000 |
+| Composition variable (question à choix attendue) | 0/3 | 0/3 | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0.0114 $ | 11763 |
+| Tout donné dès le premier message | 3/3 | 3/3 | 0/3 | 0/3 | 2/3 | 0/3 | 2/3 | 0/3 | 0/3 | 0/3 | 2/3 | 0.0226 $ | 18227 |
+| Le voyageur ne sait pas et le dit | 0/3 | 0/3 | 0/3 | 3/3 | 0/3 | 0/3 | 1/3 | 0/3 | 0/3 | 3/3 | 0/3 | 0.0193 $ | 7400 |
+| Le voyageur hésite à partir | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 3/3 | 0/3 | 0.0117 $ | 8112 |
+| Demande hors sujet, puis retour au voyage | 0/3 | 0/3 | 0/3 | 1/3 | 0/3 | 0/3 | 0/3 | 1/3 | 0/3 | 0/3 | 0/3 | 0.0119 $ | 10174 |
+| Le voyageur se contredit dans la même phrase | 0/3 | 0/3 | 0/3 | 2/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 1/3 | 0/3 | 0.0096 $ | 8961 |
+| Le voyageur pressé veut son carnet tout de suite | 0/3 | 0/3 | 0/3 | 3/3 | 0/3 | 0/3 | 1/3 | 2/3 | 0/3 | 0/3 | 0/3 | 0.0136 $ | 10335 |
+| Le voyageur écrit en anglais | 0/3 | 0/3 | 0/3 | 2/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0/3 | 0.0145 $ | 14998 |
+| Le voyageur pose les questions | 0/3 | 0/3 | 3/3 | 2/3 | 3/3 | 0/3 | 2/3 | 1/3 | 0/3 | 1/3 | 3/3 | 0.0633 $ | 27830 |
+| Le voyageur veut être surpris | 0/3 | 0/3 | 1/3 | 0/3 | 2/3 | 0/3 | 2/3 | 0/3 | 0/3 | 1/3 | 1/3 | 0.0524 $ | 52144 |
+
+Total de tous les passages : 1.1447 $ en tokens, 25 recherche(s) web.

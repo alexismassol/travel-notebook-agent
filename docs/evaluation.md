@@ -49,8 +49,8 @@ correctif de la décision 17, ce scénario marquait `travellers [confirmed] 2 ad
 alors que le voyageur n'avait jamais dit le nombre d'adultes : un brief faux qui a l'air sûr. Sur
 le passage rejoué après ce correctif, le même scénario marque bien
 `travellers [inferred] 2 adultes et 2 enfants (4 et 7 ans)`, avec la note « déduit de vos
-messages : à confirmer » (`docs/scenarios/1-destination-ouverte-famille.md:51`). La date reste
-`confirmed vacances de février`, sans année précisée ni inventée (`:49`). C'est la preuve, sur un
+messages : à confirmer » (`docs/scenarios/1-destination-ouverte-famille.md`). La date reste
+`confirmed vacances de février`, sans année inventée. C'est la preuve, sur un
 cas réel, que le correctif tient.
 Preuve en test : 11 tests sur des phrases réelles (`src/server/agent/brief/fidelity.test.ts`), plus
 1 test sur la lecture des mots du voyageur (`traveller-text.test.ts`). Détail en section 6.
@@ -101,7 +101,7 @@ brutale.
 Sur la mesure du 2026-09-17 (21 conversations réelles, décision 11), le premier texte visible
 arrive à 1,2 s en médiane, et à 3,3 s pour les 10 % les plus lents. Le tour complet prend 9,5 s
 en médiane, et 27,9 s pour les 10 % les plus lents. Le tour le plus long atteignait 50,3 s. Sur
-la campagne du 2026-09-25, plus large, il tombe à 48,1 s. Le modèle n'est pas déterministe : sur la mesure précédente du même
+la campagne du 2026-09-25, plus large, il atteint 54,6 s, sur le mode surprise. Le modèle n'est pas déterministe : sur la mesure précédente du même
 agent, avant le seul changement d'affichage des appels intermédiaires, le tour le plus long
 n'était que de 25,4 s. Avant ce round de correctifs, il montait à 59,4 s.
 
@@ -207,7 +207,7 @@ lieu d'un succès isolé, il rejoue le message 3 fois et exige au moins 2 recher
 composition variable (au moins 1 sur 3).
 
 `scripts/scenarios.ts` applique le même principe aux 16 scénarios de bout en bout. La variable
-`SCENARIO_REPEAT` (recommandée à 3, 1,2928 $ mesuré pour les 48 passages) rejoue chaque scénario N
+`SCENARIO_REPEAT` (recommandée à 3, 1,1883 $ mesuré pour les 48 passages) rejoue chaque scénario N
 fois et calcule un taux par comportement. La mesure finale du 2026-09-25
 (`docs/scenarios/README.md`) confirme le non-déterminisme au-delà des deux comportements déjà
 couverts par `tests/integration/agent.test.ts`. Deux exemples concrets viennent de cette même
@@ -396,18 +396,18 @@ un tour de correctifs après un audit adversarial. Ce sont les décisions 27 à 
   passage du 2026-09-25 donne une transcription complète par scénario, avec son coût
   (`docs/scenarios/README.md`, section « Premier passage »). Avec `SCENARIO_REPEAT=3`, le même
   script rejoue chaque scénario 3 fois. Il calcule un taux par comportement sur 48 passages réels
-  (section « Taux sur 3 passages par scénario », 1,2928 $ mesuré pour la campagne). Voir section 3
+  (section « Taux sur 3 passages par scénario », 1,1883 $ mesuré pour la campagne). Voir section 3
   pour ce que ce taux permet, et ne permet pas encore, de conclure.
 - 12 intentions jamais vues, rejouées 2 fois chacune (`scripts/spikes/robustesse.json`,
   `docs/scenarios/robustesse.md`) : voir section 2, « Essai de robustesse ». 24 passages réels,
-  0,4393 $ mesuré, hors dépôt (`data/spikes/`).
+  0,4132 $ mesuré, hors dépôt (`data/spikes/`).
 
 **Limites mesurées sur les 48 passages de la mesure finale**, chiffres traçables dans
-`docs/scenarios/README.md`. Réponse de plus de 80 mots dans 9 passages sur 48. Superlatif
-publicitaire dans 27 sur 48. Narration des coulisses dans 19 sur 48, avec un compteur élargi le
-2026-09-21, donc plus sévère qu'à la campagne précédente. Mot « brief » dit au voyageur dans 0 sur
+`docs/scenarios/README.md`. Réponse de plus de 80 mots dans 6 passages sur 48. Superlatif
+publicitaire dans 21 sur 48. Phrase de coulisses visible dans 6 sur 48, après le filtre en code qui
+en a retiré 30 sur les deux campagnes (décision 44). Mot « brief » dit au voyageur dans 0 sur
 48, tutoiement dans 0 sur 48 aussi. La question à choix reste le comportement le plus instable
-d'un scénario à l'autre. Elle apparaît 19 fois sur 48 au total, de 0/3 pour plusieurs scénarios à
+d'un scénario à l'autre. Elle apparaît 25 fois sur 48 au total, de 0/3 pour plusieurs scénarios à
 3/3 pour d'autres. On ne peut pas encore dire à quel taux s'attendre
 pour un scénario donné (section 3). Ces chiffres ne remplacent pas une relecture : ils disent où
 chercher en premier.

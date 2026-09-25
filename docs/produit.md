@@ -92,7 +92,7 @@ C'est la première priorité de `docs/evaluation.md` et le premier indicateur de
 
 **Risque secondaire : l'attente peut recréer l'abandon que l'agent doit éviter.** Un tour qui
 enchaîne recherches web et fiches destination est le plus long. Sur la mesure finale, le tour le
-plus long dure 48,1 s ; mais un tour où des fiches sont refusées puis refaites a déjà duré
+plus long dure 54,6 s ; mais un tour où des fiches sont refusées puis refaites a déjà duré
 98,9 s (`docs/choix-techniques.md`, décision 11). Un voyageur qui abandonne pendant cette attente
 reproduit, pour une autre raison, la perte que le formulaire cause déjà.
 

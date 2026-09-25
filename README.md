@@ -90,7 +90,7 @@ Ouvrir http://localhost:5173 et écrire son envie de voyage, comme à un ami.
 | `npm start` | Compile l'interface et sert tout sur :8787 | à l'usage |
 | `npm run check` | Biome, vérification des types, contrôle des docs, tests unitaires | aucun |
 | `npm run test:integration` | Agent réel : playbook famille, carnet complet, recherche web, question à choix | quelques centimes |
-| `npm run scenarios` (`SCENARIO_REPEAT=3` recommandé) | Rejoue les 16 scénarios de référence sur le vrai modèle et écrit les taux dans `docs/scenarios/` | mesuré : 1,29 $ pour 48 passages |
+| `npm run scenarios` (`SCENARIO_REPEAT=3` recommandé) | Rejoue les 16 scénarios de référence sur le vrai modèle et écrit les taux dans `docs/scenarios/` | mesuré : 1,19 $ pour 48 passages |
 | `npm run visual-check` | Conversation réelle dans le navigateur, téléchargement du carnet, captures desktop et mobile | quelques centimes |
 
 Le modèle se change sans toucher au code : `ANTHROPIC_MODEL=claude-sonnet-5 npm run dev`.
@@ -119,9 +119,8 @@ regarder :
 
 Ces comportements sont mesurés en taux, pas en acquis. Mesure du 2026-09-25, campagne définitive de
 16 scénarios, 3 passages chacun. Fiches famille 3 sur 3, carnet Vietnam validé 3 sur 3, recherche
-avant d'affirmer sur le Népal 3 sur 3, fiche Zanzibar 3 sur 3. Question à choix sur Bali 1 sur 3 :
-le modèle varie, 2 sur 3 et 3 sur 3 dans des campagnes précédentes. Mode surprise, fiches 2 sur 3
-et recherche 3 sur 3 ([`docs/scenarios/README.md`](docs/scenarios/README.md)).
+avant d'affirmer sur le Népal 3 sur 3, fiche Zanzibar 3 sur 3, question à choix sur Bali 3 sur 3.
+Mode surprise, fiches 2 sur 3 et recherche 3 sur 3 ([`docs/scenarios/README.md`](docs/scenarios/README.md)).
 
 Le carnet à droite (bandeau repliable sur mobile) se remplit à chaque message. Une information
 floue s'affiche « à préciser », une déduction « à confirmer », une contradiction « à trancher » :
@@ -325,7 +324,7 @@ La méthode :
   humains ;
 - comparer Haiku 4.5 et Sonnet 5 avant tout changement de modèle.
 
-Existe déjà : 416 tests unitaires et 5 tests d'intégration réels. Les 16 scénarios de
+Existe déjà : 434 tests unitaires et 5 tests d'intégration réels. Les 16 scénarios de
 référence ont été rejoués 3 fois chacun, puis relus du point de vue du voyageur
 ([`docs/scenarios/relecture.md`](docs/scenarios/relecture.md)). S'y ajoute un essai de robustesse
 sur 12 intentions jamais vues ([`docs/scenarios/robustesse.md`](docs/scenarios/robustesse.md)).
@@ -340,12 +339,12 @@ la transcription du scénario.
 |---|---|---|
 | Tutoiement | 0 | Le vouvoiement ne dépend pas de la bonne volonté du modèle |
 | Mot « brief » dit au voyageur | 0 | Remplacé par « projet » dans le texte affiché |
-| Question à choix posée | 19 | Un passage sur deux : la conversation reste une conversation |
-| Recherche web lancée | 23 | Une question de saison, de climat ou de fête la déclenche |
-| Fiches destination affichées | 15 | Surtout quand la destination est ouverte ou que le voyageur interroge l'agent |
+| Question à choix posée | 25 | Un passage sur deux : la conversation reste une conversation |
+| Recherche web lancée | 20 | Une question de saison, de climat ou de fête la déclenche |
+| Fiches destination affichées | 12 | Surtout quand la destination est ouverte ou que le voyageur interroge l'agent |
 | Carnet validé | 6 | Les deux scénarios où le voyageur sait déjà, 3 fois sur 3 chacun |
-| Réponse de plus de 80 mots | 9 | Un défaut de ton fréquent, avec le superlatif |
-| Coût de la campagne | 1,29 $ | 30 recherches web facturées en plus |
+| Réponse de plus de 80 mots | 6 | Un défaut de ton fréquent, avec le superlatif |
+| Coût de la campagne | 1,19 $ | 26 recherches web facturées en plus |
 
 Ce que la vérification réelle a trouvé et que les tests ne voyaient pas : un carnet PDF citait
 « départ de Paris, budget autour de 4000 € » sous la ligne des envies. Une seule phrase servait à
@@ -367,20 +366,25 @@ se passe. Le pire cas de 98,9 s est un tour à trois appels avec réécriture co
 Le cache sert 76,7 % de l'entrée sur ces 611 tours. Deux appels au modèle par tour en médiane,
 20 % des tours en font trois ou plus.
 
-**Ce qui reste mal tenu, mesuré** : un superlatif (« parfait », « excellent ») dans 27 passages
-sur 48, une narration des coulisses (« je vais enregistrer ») dans 19, une réponse de plus de 80
-mots dans 9. C'est la limite d'un rappel de ton écrit dans le prompt : le modèle le suit à moitié.
+**Les phrases de coulisses.** Le modèle écrit encore « Je vais noter votre projet ». Un filtre en
+code les retire avant l'écran et de l'historique : 30 phrases retirées sur les deux campagnes. Il en
+reste une visible dans 6 passages sur 48 (19 avant le filtre), des tournures longues ou utiles
+comme « vous partez à deux à Bali en juillet, c'est noté » (décision 44).
+
+**Ce qui reste mal tenu, mesuré** : un superlatif (« parfait », « excellent ») dans 21 passages
+sur 48, une réponse de plus de 80 mots dans 6. C'est la limite d'un rappel de ton écrit dans le
+prompt : le modèle le suit à moitié.
 
 **Le voyageur qui interroge l'agent** (scénario 8) : il ne répond jamais directement, il demande.
-L'agent cherche, compare le Sri Lanka et la Thaïlande avec des températures, répond sur le décalage
-horaire, et note quand même durée, voyageurs et ville de départ. Le carnet finit à 3 obligatoires
-sur 4 : il reste à choisir entre les deux pays.
+L'agent montre des fiches après une recherche. Il compare le Sri Lanka et la Thaïlande avec des
+températures et répond sur le décalage horaire. Il note quand même durée, voyageurs et ville de
+départ. Le carnet finit à 3 obligatoires sur 4 : la destination reste à choisir.
 
 **Le modèle n'est pas déterministe.** Deux mesures complètes du même agent donnent des taux qui
 bougent d'un passage sur trois. C'est pour ça que la documentation cite des taux, jamais un essai
 isolé.
 
-Tests : 416 unitaires (`npx vitest run`), dont chaque correctif montré rouge puis vert, avec un
+Tests : 434 unitaires (`npx vitest run`), dont chaque correctif montré rouge puis vert, avec un
 sabotage qui refait tomber le test ; 5 tests d'intégration réels
 ([`tests/integration/agent.test.ts`](tests/integration/agent.test.ts)).
 
@@ -431,8 +435,10 @@ serveur MCP.
 | Évaluation à grande échelle : scénarios répétés, juge automatique, voyageur simulé | Le design est écrit. Les 16 scénarios rejoués servent de base | Répéter chaque scénario 10 fois et suivre les taux |
 | Fidélité de la date et de la destination | Voyageurs et citations sont contrôlés en code, pas encore ces deux cases | Annoter 50 conversations : valeur, statut, citation |
 | Comparaison chiffrée Haiku 4.5 / Sonnet 5 | Pas encore mesurée | `ANTHROPIC_MODEL=claude-sonnet-5 npm run scenarios` |
+| Remesurer le code final | Les décisions 44 à 47 sont testées en unitaire, pas encore en campagne complète | `SCENARIO_REPEAT=3 npm run scenarios` |
 | Ton : superlatifs et réponses trop longues | Consigne suivie à moitié ; réécrire la réponse du modèle serait risqué | Comparer avec Sonnet 5 sur les mêmes compteurs |
 | Persistance réelle et reprise de conversation | Mémoire et fichiers suffisent à la démonstration | Postgres, conversation par identifiant |
+| Mise en ligne publique | L'API n'a ni compte ni limite par visiteur : chaque tour coûte des jetons | Connexion et limite de tours par personne |
 | Partager son carnet | Le PDF suffit à la démonstration | Un lien de partage en lecture seule |
 | Traces vers Langfuse | Observabilité en design écrit | Brancher le `TraceRecord` existant |
 | Accessibilité testée avec des utilisateurs de lecteurs d'écran | Contrôles automatiques seulement | Test avec VoiceOver |

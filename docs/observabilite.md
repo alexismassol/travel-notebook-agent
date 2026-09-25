@@ -37,7 +37,7 @@ Un contrôle en code corrige un cas précis, mesuré à plusieurs reprises : le 
 « destination ouverte, en famille », le voyageur donne l'âge des enfants mais ne dit jamais
 combien d'adultes partent. Sur la transcription rejouée le 2026-09-17, le brief note bien
 `travellers [inferred]`, avec la raison « déduit de vos messages : à confirmer »
-(`docs/scenarios/1-destination-ouverte-famille.md:51`), pas `confirmed`. Ce correctif précis
+(`docs/scenarios/1-destination-ouverte-famille.md`), pas `confirmed`. Ce correctif précis
 tient sur ce cas.
 
 Il reste volontairement étroit. Deux des quatre informations obligatoires ont un contrôle en code :
@@ -61,20 +61,19 @@ Un chargement décidé dans le même appel que celui qui déclenche le rappel re
 **Une affirmation factuelle sans recherche.** Sur le passage régénéré du 2026-09-17, l'agent
 cherche avant de répondre dans les deux cas qui l'exigent. Pour « Le trek au Népal en juillet,
 c'est jouable ? », `web_search` est appelé avant toute affirmation sur la saison
-(`docs/scenarios/3-conseil-trek-nepal.md:11`).
+(`docs/scenarios/3-conseil-trek-nepal.md`).
 
-Pour « C'est où Zanzibar ? », la première tentative de fiche a lieu AVANT toute recherche
-(`docs/scenarios/4-envie-floue-zanzibar.md:11`) et n'affiche rien : le garde-fou décrit plus bas
-la refuse tant qu'aucune recherche ne cite le lieu. L'agent cherche ensuite (ligne 12), retente,
-et la fiche Zanzibar s'affiche enfin (ligne 15). C'est le garde-fou qui force la recherche ici,
-pas une bonne pratique spontanée du modèle.
+Pour « C'est où Zanzibar ? », l'agent cherche d'abord, puis la fiche Zanzibar s'affiche
+(`docs/scenarios/4-envie-floue-zanzibar.md`). Le garde-fou décrit plus bas reste en place : sur
+une autre campagne, il a refusé une fiche tentée avant toute recherche. Le modèle ne cherche donc
+pas toujours de lui-même.
 
 Le risque n'a pas disparu pour autant : le modèle n'est pas déterministe (voir le
 [glossaire](glossaire.md)). `tests/integration/agent.test.ts` ne vérifie donc plus un seul essai,
 mais un taux : au moins 2 recherches sur 3 essais. Une fiche destination sans recherche qui cite
 le lieu ou son pays est refusée en code, pas seulement par une règle du prompt. `ungroundedCards`
-(`src/server/agent/tools/show-destination-cards.ts`, appelée ligne 176) renvoie une
-erreur d'outil (lignes 184-185) tant qu'aucune requête `web_search` de la conversation ne cite le
+(`src/server/agent/tools/show-destination-cards.ts`, appelée par l'outil) renvoie une
+erreur d'outil tant qu'aucune requête `web_search` de la conversation ne cite le
 lieu ou son pays. Ce garde-fou a été ajouté après qu'un essai antérieur ait affiché une fiche Zanzibar sans
 aucune recherche (décision 15 du [registre des choix techniques](choix-techniques.md)).
 
@@ -88,8 +87,9 @@ Corrigé par `placeWords` (`src/server/agent/tools/show-destination-cards.ts`) :
 les mots trop génériques comme « îles » ou « saint ». Le message de refus donne en plus la
 requête à lancer (`src/server/agent/tools/show-destination-cards.ts`).
 
-Sur la transcription régénérée, les trois fiches (Guadeloupe, Tanzanie, Maroc) s'affichent bien
-au tour 2 (`docs/scenarios/1-destination-ouverte-famille.md:34-37`). Sur les 3 passages répétés
+Sur la transcription du premier passage, deux fiches s'affichent au tour 2 : Guadeloupe et Îles
+Canaries (`docs/scenarios/1-destination-ouverte-famille.md`). La troisième, Costa Rica, n'est pas
+montrée. Sur les 3 passages répétés
 de ce scénario, la fiche s'affiche maintenant 3 fois sur 3 (`docs/scenarios/README.md`), contre
 2 fois sur 3 avant ce correctif. C'est un net progrès, mais l'échantillon reste petit : 3
 passages ne suffisent pas à garantir que ça tienne sur un vrai volume de conversations.
@@ -106,7 +106,7 @@ l'enregistrement du message du voyageur, sur l'état à jour du brief
 appel au modèle depuis `src/server/agent/loop.ts`.
 Mesuré sur 3 passages : la question à choix est passée de 2 essais sur 21 à 8 sur 21 quand ce
 calcul est arrivé (décision 9 du [registre des choix techniques](choix-techniques.md)). La
-campagne du 2026-09-25, plus large, en compte 19 sur 48. Ça reste une aide, pas une
+campagne du 2026-09-25, plus large, en compte 25 sur 48. Ça reste une aide, pas une
 garantie : rien n'empêche le modèle de reposer ailleurs une question déjà répondue.
 
 **Abandon.** Le voyageur ferme l'onglet. Rien ne mesure encore la fidélisation tour par
@@ -260,9 +260,10 @@ le tutoiement, et le nombre de mots. Les motifs viennent d'un audit du 2026-09-1
 premières transcriptions : superlatif dans 6 sur 7, narration dans 2 sur 7, « brief » dans 1 sur
 7 (`src/server/agent/reply-metrics.ts`).
 
-Sur la mesure finale de 48 passages (`docs/scenarios/README.md`) : superlatif 27 sur 48,
-narration 19 sur 48, « brief » 0 sur 48, tutoiement 0 sur 48, réponse de plus de 80 mots 9 sur
-48. Un compteur à zéro ne prouve pas que le ton est bon partout : il prouve que ce défaut précis
+Sur la mesure finale de 48 passages (`docs/scenarios/README.md`) : superlatif 21 sur 48,
+phrase de coulisses visible 6 sur 48, « brief » 0 sur 48, tutoiement 0 sur 48, réponse de plus de
+80 mots 6 sur 48. Les phrases de coulisses retirées par le filtre se comptent à part, dans la trace
+`coulisses_retirees` : 30 sur les deux campagnes. Un compteur à zéro ne prouve pas que le ton est bon partout : il prouve que ce défaut précis
 est absent sur ce jeu de scénarios précis. Le modèle n'est pas déterministe : sur deux mesures du
 même agent, un taux comme celui-ci peut bouger d'un passage sur trois.
 
@@ -329,10 +330,10 @@ agrégée par conversation, puis divisée par le nombre de carnets effectivement
 (`persistSentBrief` appelé, `src/server/conversation.ts`). Par conversation et non par
 requête, parce qu'une requête isolée ne dit rien du coût d'aller jusqu'au bout. Par carnet validé,
 parce qu'une conversation qui n'aboutit jamais à une validation a un coût mais aucun résultat pour
-le voyageur. Sur 48 passages (`docs/scenarios/README.md`), le coût moyen va de 0,0094 $ à 0,0651 $ selon
+le voyageur. Sur 48 passages (`docs/scenarios/README.md`), le coût moyen va de 0,0096 $ à 0,0668 $ selon
 le scénario. Le moins cher est le voyageur qui hésite à partir, sans recherche ni fiche. Le plus
-cher est le voyageur qui pose les questions, avec recherche web et plusieurs fiches. Total :
-1,2928 $ pour les 48 passages, plus 30 recherches web facturées à part.
+cher est le voyageur qui veut être surpris, avec recherche web et plusieurs fiches. Total :
+1,1883 $ pour les 48 passages, plus 26 recherches web facturées à part.
 
 **Latence, temps au premier texte et temps total.** `TurnUsage.durationMs` donne la durée totale
 du tour ; `TurnUsage.firstTextMs` donne le délai avant le premier fragment de texte envoyé au
@@ -351,7 +352,7 @@ Mesure du 2026-09-17, sur 21 conversations de référence réelles (décision 11
 [registre des choix techniques](choix-techniques.md)). Premier texte visible : 1,2 seconde en
 médiane, 3,3 secondes pour les 10 % les plus lents. Tour complet : 9,5 secondes en médiane, 27,9
 secondes pour les 10 % les plus lents. Le tour le plus long atteignait alors 50,3 secondes. Sur
-la campagne du 2026-09-25, plus large, le tour le plus long tombe à 48,1 secondes, sur le mode
+la campagne du 2026-09-25, plus large, le tour le plus long atteint 54,6 secondes, sur le mode
 surprise (`docs/scenarios/README.md`). Le modèle n'est pas déterministe : sur la
 mesure précédente du même agent, avant le seul changement d'affichage des appels intermédiaires, le
 tour le plus long n'était que de 25,4 secondes. Avant ce tour de correctifs, il montait à
@@ -377,7 +378,7 @@ faits confirmés.
 **Question à choix contre question ouverte.** Part des tours où l'agent utilise `ask_choice`
 plutôt qu'une question en texte libre. Pas encore dans une trace dédiée, seulement visible via
 `tool_activity`. `nextQuestionHint` (section 1) pousse dans cette direction sans le garantir : le
-taux mesuré sur 48 passages est de 19 sur 48 (`docs/scenarios/README.md`). Une part de choix qui
+taux mesuré sur 48 passages est de 25 sur 48 (`docs/scenarios/README.md`). Une part de choix qui
 monte sur des tours où le voyageur exprime une envie personnelle signale que l'agent questionne
 au lieu d'écouter.
 

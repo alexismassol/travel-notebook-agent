@@ -16,9 +16,9 @@ npm run dev                 # http://localhost:5173
 
 | Commande | Ce qu'elle vérifie | Coût |
 |---|---|---|
-| `npm run check` | Biome, typecheck, contrôle de la documentation, 416 tests unitaires. Ils couvrent le brief, sa complétude et la fidélité des valeurs notées. Puis la non-fuite du playbook, la recherche de destination, la boucle d'un tour, les réponses d'erreur du serveur et les compteurs de ton | nul |
+| `npm run check` | Biome, typecheck, contrôle de la documentation, 434 tests unitaires. Ils couvrent le brief, sa complétude et la fidélité des valeurs notées. Puis la non-fuite du playbook, la recherche de destination, la boucle d'un tour, les réponses d'erreur du serveur et les compteurs de ton | nul |
 | `npm run test:integration` | L'agent réel, 5 tests. Chargement du playbook famille. Chargement du playbook voyage surprise, au moins 2 essais sur 3. Brief complet sans `ask_choice`. Recherche web sur un conseil Népal, au moins 2 essais sur 3. Question à choix sur une composition variable, au moins 1 essai sur 3 | quelques centimes |
-| `npm run scenarios` | Rejoue les 16 intentions de référence dans `docs/scenarios/`. Avec `SCENARIO_REPEAT=3`, chaque intention est rejouée 3 fois, avec un tableau de taux | environ 1,29 $ (mesuré : 1,29 $ en jetons pour 48 passages, plus 30 recherches web) |
+| `npm run scenarios` | Rejoue les 16 intentions de référence dans `docs/scenarios/`. Avec `SCENARIO_REPEAT=3`, chaque intention est rejouée 3 fois, avec un tableau de taux | environ 1,20 $ (mesuré : 1,19 $ en jetons pour 48 passages, plus 26 recherches web) |
 | `npm run visual-check` | Contrôle visuel réel sur l'application lancée par `npm run dev`. Il mène la conversation, clique une question à choix, télécharge le carnet, ouvre les détails techniques. Il mesure le débordement horizontal, les zones tactiles trop petites et les images sans `alt`. Captures dans `data/screenshots/` | quelques centimes |
 
 Les tests d'intégration échouent explicitement si la clé manque : un vert obtenu en sautant les

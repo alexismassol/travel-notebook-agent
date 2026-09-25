@@ -58,7 +58,7 @@ dépôt. Quand un chiffre est une hypothèse, c'est écrit.
 | 42 | Un troisième playbook pour le voyage surprise | « Surprenez-moi » ne veut pas dire répondre à un questionnaire |
 | 43 | Une fiche de pays montre une vraie photo du pays | « Albanie » montrait un sabre de musée, « Jordanie » une avenue de Paris |
 | 44 | Une phrase de coulisses ne s'affiche pas | « Je vais noter votre projet » dans 19 passages sur 48 |
-| 45 | Une hésitation sur le nombre se règle par un choix | « 4 ou 6 personnes » posé en texte, une fois sur trois |
+| 45 | Une hésitation sur le nombre se règle par un choix | « 4 ou 6 personnes » posé en texte, deux fois sur trois |
 | 46 | L'exemple du prompt ne donne plus un fait sans recherche | L'exemple même affirmait une saison, contre la règle 2 |
 | 47 | Une recherche web illisible ne fait plus tomber le tour | Mode surprise : un passage sur trois perdu en campagne |
 
@@ -350,8 +350,8 @@ est activé sur toute la requête.
 l'octet près. Haiku 4.5 ne met en cache qu'au-delà de 4 096 tokens : il sert dès le deuxième appel
 d'un tour.
 
-**Mesuré.** Scénario famille, tour 1 de la mesure finale : 17 460 tokens lus en cache, 1 943 écrits
-en cache, et 10 tokens payés plein tarif (`docs/scenarios/1-destination-ouverte-famille.md:22`).
+**Mesuré.** Scénario famille, tour 1 de la mesure finale : 9 761 tokens lus en cache, 11 574 écrits
+en cache, et 10 tokens payés plein tarif (`docs/scenarios/1-destination-ouverte-famille.md`).
 
 ## Décision 11 : Faire patienter le voyageur
 
@@ -1369,14 +1369,14 @@ n'est plus retenue jusqu'à son point : au-delà de 30 lettres sans verbe de cou
 **Ce qu'on a écarté.** Retirer toute phrase qui contient « c'est noté » : « Vous partez à deux à
 Bali en juillet, c'est noté » donne une vraie information au voyageur.
 
-**La preuve.** Six tests, vus rouges puis verts, sabotage vérifié. Campagne réelle suivante :
+**La preuve.** Neuf tests, vus rouges puis verts, sabotage vérifié. Campagne réelle suivante :
 une phrase visible dans 6 passages sur 48, et 30 phrases retirées sur les deux campagnes.
 
 **Où le voir.** `src/server/agent/text-guard.ts`, `src/server/agent/loop.ts`.
 
 ## Décision 45 : Une hésitation sur le nombre se règle par un choix
 
-**Le problème, mesuré.** « On sera 4 ou 6 personnes » : une fois sur trois, l'agent posait la
+**Le problème, mesuré.** « On sera 4 ou 6 personnes » : deux fois sur trois, l'agent posait la
 question en texte. Il l'écrivait avant de recevoir la consigne des outils `note_*`.
 
 **Ce qu'on a fait.** `hesitationSurLeNombre` (`fidelity.ts`) repère « 4 ou 6 » ou « entre 5 et 8 »
@@ -1385,7 +1385,7 @@ personnes : « on sera » devant, ou « personnes », « amis » après. Sans lu
 déclenchait le rappel, trouvé par la relecture du serveur. Un rappel part alors dès le début du
 tour : noter, puis poser la question avec `ask_choice`, une option par nombre dit.
 
-**La preuve.** Quatre tests, vus rouges puis verts, sabotage vérifié. Campagne réelle : question à
+**La preuve.** Six tests, vus rouges puis verts, sabotage vérifié. Campagne réelle : question à
 choix sur Bali 3 fois sur 3, contre 1 sur 3 avant.
 
 **Où le voir.** `src/server/agent/brief/fidelity.ts`, `src/server/agent/context.ts`.

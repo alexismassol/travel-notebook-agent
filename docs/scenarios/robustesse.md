@@ -21,27 +21,27 @@ Comment lire les colonnes : voir [`README.md`](README.md). « Superlatif », « 
 
 | Scénario | 4/4 atteint | Carnet validé | Fiche affichée | Question à choix | Recherche web | Tutoiement | Superlatif | Narration | « brief » | 2 questions | Réponse > 80 mots | Coût moyen | Tour le plus long (ms) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Hésitation entre deux pays | 0/2 | 0/2 | 0/2 | 1/2 | 2/2 | 0/2 | 2/2 | 1/2 | 0/2 | 0/2 | 2/2 | 0.0315 $ | 15844 |
-| Voyage de noces sans destination | 0/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0/2 | 1/2 | 2/2 | 0/2 | 0/2 | 0/2 | 0.0146 $ | 13321 |
-| Contrainte de mobilité | 0/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0/2 | 0/2 | 2/2 | 0/2 | 0/2 | 0/2 | 0.0152 $ | 12864 |
-| Budget déconnecté de la réalité | 2/2 | 0/2 | 0/2 | 0/2 | 2/2 | 0/2 | 0/2 | 2/2 | 0/2 | 0/2 | 2/2 | 0.0245 $ | 11751 |
-| Envie qui se heurte à la réalité | 0/2 | 0/2 | 0/2 | 0/2 | 1/2 | 0/2 | 2/2 | 1/2 | 0/2 | 1/2 | 2/2 | 0.0186 $ | 9777 |
-| Aucune idée | 0/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0.0091 $ | 5011 |
-| Message long et désordonné | 0/2 | 0/2 | 0/2 | 2/2 | 2/2 | 0/2 | 2/2 | 1/2 | 0/2 | 0/2 | 2/2 | 0.0346 $ | 13182 |
-| Message en anglais | 0/2 | 0/2 | 0/2 | 2/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0.0151 $ | 13006 |
-| Question hors sujet | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0.0070 $ | 1994 |
-| Tentative d'injection | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0.0071 $ | 3623 |
-| Correction au deuxième message | 2/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0/2 | 2/2 | 1/2 | 0/2 | 1/2 | 1/2 | 0.0219 $ | 13009 |
-| Question de formalités | 0/2 | 0/2 | 0/2 | 0/2 | 2/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 1/2 | 0.0204 $ | 10543 |
+| Hésitation entre deux pays | 0/2 | 0/2 | 0/2 | 1/2 | 2/2 | 0/2 | 2/2 | 0/2 | 0/2 | 0/2 | 2/2 | 0.0327 $ | 15500 |
+| Voyage de noces sans destination | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0.0154 $ | 10004 |
+| Contrainte de mobilité | 0/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0.0156 $ | 10763 |
+| Budget déconnecté de la réalité | 2/2 | 0/2 | 0/2 | 0/2 | 2/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 2/2 | 0.0256 $ | 15202 |
+| Envie qui se heurte à la réalité | 0/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0/2 | 1/2 | 2/2 | 0.0166 $ | 15886 |
+| Aucune idée | 0/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0.0092 $ | 3560 |
+| Message long et désordonné | 0/2 | 0/2 | 0/2 | 2/2 | 1/2 | 0/2 | 2/2 | 0/2 | 0/2 | 0/2 | 1/2 | 0.0218 $ | 14100 |
+| Message en anglais | 0/2 | 0/2 | 0/2 | 2/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0.0148 $ | 9764 |
+| Question hors sujet | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0.0069 $ | 2885 |
+| Tentative d'injection | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0.0070 $ | 1765 |
+| Correction au deuxième message | 2/2 | 0/2 | 0/2 | 1/2 | 0/2 | 0/2 | 2/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0.0202 $ | 8693 |
+| Question de formalités | 0/2 | 0/2 | 0/2 | 0/2 | 2/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0/2 | 0.0207 $ | 6583 |
 
-Total de tous les passages : 0.4393 $ en tokens, 13 recherche(s) web.
+Total de tous les passages : 0.4132 $ en tokens, 9 recherche(s) web.
 
 ## Avant et après ce round (même essai, même nombre de passages)
 
 | Mesure | Avant | Après |
 |---|---|---|
 | Question à choix posée | 5 passages sur 24 | 9 sur 24 |
-| Recherche web lancée | 7 passages sur 24 | 9 sur 24 |
+| Recherche web lancée | 7 passages sur 24 | 7 sur 24 |
 | Fiches pour le voyage de noces | 0 sur 2 | 0 sur 2 |
 | Tutoiement | 0 sur 24 | 0 sur 24 |
 

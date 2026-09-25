@@ -16,7 +16,7 @@ npm run dev               # API :8787 + interface :5173
 npm run check             # lint + typecheck + contrôle des docs + les tests unitaires : obligatoire avant commit
 npm run test:integration  # vrais appels API (coûte des tokens, jamais en boucle)
 npm run scenarios         # rejoue les 16 scénarios de référence -> docs/scenarios/
-SCENARIO_REPEAT=3 npm run scenarios  # 3 passages par scénario, tableau des taux (1,29 $ mesuré)
+SCENARIO_REPEAT=3 npm run scenarios  # 3 passages par scénario, tableau des taux (1,19 $ mesuré)
 npm run visual-check      # Playwright : capture desktop/mobile -> data/screenshots/
 # Première fois sur une machine neuve : npx playwright install chromium
 ```
@@ -42,6 +42,8 @@ npm run visual-check      # Playwright : capture desktop/mobile -> data/screensh
 8. **Le texte visible ne contient jamais de syntaxe d'appel d'outil.** Filtré en streaming
    (`text-guard.ts`, `createVisibleTextFilter`) ; si une coupure a lieu, le texte stocké dans
    l'historique est nettoyé (`stripForbiddenText`) et la fuite est tracée (`text_leak`).
+   Les phrases de coulisses (« Je vais noter votre projet ») sont retirées de la même façon
+   (`createCoulissesFilter`), et comptées (`coulisses_retirees`).
 9. **Chaque `tool_use` a toujours son `tool_result` avant le tour suivant**, même si l'appel a
    été coupé par `max_tokens` ou interrompu par `refusal` : sans lui, l'API Messages répond 400.
    Prouvé par `src/server/agent/loop.test.ts` sur un client scripté (déroulé, pas le comportement

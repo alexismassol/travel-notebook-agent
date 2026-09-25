@@ -12,7 +12,7 @@ Le modèle choisit des outils (chercher sur le web, noter une information, poser
 et c'est notre serveur qui les exécute et qui garde le contrôle. Chaque garde-fou cité ici a été
 mesuré sur le vrai modèle, jamais deviné : les preuves sont dans `docs/scenarios/`.
 
-Décrit l'état réel du code au 2026-09-25. `npm run typecheck` passe sans erreur, et les 416 tests
+Décrit l'état réel du code au 2026-09-25. `npm run typecheck` passe sans erreur, et les 434 tests
 unitaires passent (`npx vitest run`, 36 fichiers). Les numéros de ligne peuvent glisser un peu après cette date.
 
 Les mots techniques sont expliqués dans le [glossaire](glossaire.md).
@@ -27,7 +27,7 @@ suivent le type `IsoDate`
 (`brief.ts`) : elles doivent avoir la forme
 AAAA-MM-JJ, et exister vraiment dans le calendrier. `2027-13-45` et `2027-02-30` sont donc
 refusées avant même d'arriver à `completeness.ts`. Ce fichier garde quand même un filet de
-sécurité (ligne 65), au cas où une date resterait illisible malgré tout.
+sécurité, au cas où une date resterait illisible malgré tout.
 
 | Champ | Obligatoire | Forme de `value` | Exemple |
 |---|---|---|---|
@@ -94,17 +94,17 @@ renvoie ce qui s'est passé. Ce projet en a neuf, plus la recherche web fournie 
 
 ### Les cinq outils `note_*` (`tools/brief-tools.ts`)
 
-Leurs paramètres sont plats : des nombres, du texte, des listes de texte (lignes 137-240). Pas
+Leurs paramètres sont plats : des nombres, du texte, des listes de texte. Pas
 d'objet imbriqué. Raison mesurée le 2026-09-16 : avec des objets imbriqués, Haiku 4.5 écrivait des
 entrées cassées (`"interests": "\n<parameter name=\"status\">..."`). Et le mode strict qui aurait
 empêché ça était refusé par l'API sur ce schéma : « compiled grammar is too large ». Chaque outil
 convertit son entrée en `BriefPatch` interne. La validation (Zod) et la fusion (`applyPatch`)
-restent uniques et testées, quel que soit l'outil appelé (lignes 46-104). Un statut `conflicting`
+restent uniques et testées, quel que soit l'outil appelé. Un statut `conflicting`
 sans `alternatives` est refusé plutôt qu'accepté avec une alternative vide (`apply-patch.ts`).
 Le champ `zone` est aussi nettoyé avant d'entrer dans le brief : une case vide, « plusieurs pays »
 ou « à définir » deviennent toutes `null` (`normalizeZone`, `brief-tools.ts`).
 
-Avant que l'entrée entre dans le brief, un crochet de relecture (`review`, lignes 106-135) peut la
+Avant que l'entrée entre dans le brief, un crochet de relecture (`review`) peut la
 corriger et ajouter une note pour le modèle :
 
 - **`note_destination`** (`brief-tools.ts`) : un statut `conflicting` dont « l'autre lieu »
@@ -127,6 +127,11 @@ pour une année. La comparaison des lieux ignore accents et majuscules (`samePla
   (fonction `ligne`, `carnet.ts`) réutilise la même fonction pour choisir, parmi les citations
   d'une case, la plus récente qui parle de la valeur affichée. Pour la destination et la ville de
   départ, sans phrase qui nomme le lieu, la ligne s'imprime sans citation.
+
+Deux gardes agissent sur le texte et le contexte du tour. `createCoulissesFilter`
+(`text-guard.ts`) retire du texte affiché et de l'historique une phrase courte qui ne fait que
+raconter le travail de l'agent (décision 44). `hesitationSurLeNombre` (`fidelity.ts`) ajoute un
+rappel de début de tour quand le voyageur hésite sur le nombre de voyageurs (décision 45).
 
 Chaque outil `note_*` ajoute aussi des notes à son résultat, dont un rappel si le brief contient
 un enfant sans le playbook famille chargé (`brief-tools.ts`). La consigne de suite est
@@ -188,11 +193,11 @@ complet pendant ce tour : `present_brief` passe avant une nouvelle question (`lo
 
 Une à trois fiches, avec photo et coordonnées **toujours** trouvées côté serveur, jamais écrites
 par le modèle. Refusée si aucune recherche web de la conversation ne cite le lieu ou son pays
-(`ungroundedCards`, `show-destination-cards.ts`, appelé ligne 176). La comparaison se fait
+(`ungroundedCards`, `show-destination-cards.ts`). La comparaison se fait
 mot par mot : un mot de 4 lettres ou plus, en dehors des mots trop génériques comme « îles » ou
-« grande » (lignes 88-113). Le refus dit au modèle quelle recherche lancer.
+« grande ». Le refus dit au modèle quelle recherche lancer.
 
-L'affichage est **partiel**, pas tout ou rien (lignes 176-186). Si deux fiches sur trois sont
+L'affichage est **partiel**, pas tout ou rien. Si deux fiches sur trois sont
 appuyées par une recherche, ces deux-là s'affichent quand même : seule la troisième est refusée,
 avec la requête à lancer pour la montrer aussi.
 
@@ -381,13 +386,17 @@ un audit du 2026-09-17 : un superlatif dans 6 transcriptions sur 7, le mot « br
 voyageur dans 1 sur 7. Le troisième dit de chercher puis montrer une fiche si le voyageur demande
 où est un lieu.
 
-**Deux rappels de plus s'ajoutent chacun à part, selon l'état de la conversation.** Si une
+**Trois rappels de plus s'ajoutent chacun à part, selon l'état de la conversation.** Si une
 information obligatoire est déjà suffisante mais que le brief n'est pas complet, un rappel la
 nomme et dit de ne plus la redemander, même pour l'affiner (`dejaSuffisant`, `context.ts`,
 décision 33 de `docs/choix-techniques.md`). Mesuré sur une vraie conversation : la période
 redemandée quatre fois, la durée deux fois, alors que le voyageur avait déjà répondu « je suis
 flexible ». Si le modèle a posé deux questions à choix ou plus d'affilée
 (`consecutiveChoices`, `conversation.ts`), un autre rappel lui dit d'avancer autrement ce tour.
+Si le voyageur hésite sur le nombre de voyageurs (« 4 ou 6 », « entre 5 et 8 »), un rappel
+dit de noter ce nombre, puis de poser la question avec `ask_choice`, une option par nombre dit
+(`hesitationSurLeNombre`, `fidelity.ts`, décision 45). Le rappel ne recopie que les nombres lus,
+jamais le texte libre du voyageur.
 
 **Un dernier rappel s'ajoute selon l'état du brief, jamais deux de ce groupe à la fois.** Si le
 carnet est déjà validé (`conversation.sentAt`), aucun rappel n'est ajouté : le modèle répond
@@ -454,11 +463,9 @@ qu'il charge des instructions : l'événement `playbook_loaded` l'affiche déjà
   par les suivants (`brief-tools.ts`).
 - **Test de non-fuite** (`context.test.ts`) : des marqueurs extraits du fichier `.md` (des lignes
   d'au moins 25 caractères). Un contrôle négatif vérifie qu'aucun marqueur n'apparaît dans la
-  requête du tour 1, ni dans le prompt système, même si le voyageur parle d'enfants (lignes
-  55-68). Un contrôle positif vérifie que tous les marqueurs sont présents dans la requête après
-  un appel réel de `load_playbook.run` (lignes 70-97). L'absence de recopie au deuxième appel est
-  vérifiée séparément (lignes 99-109), tout comme la distinction `spontaneous` / `nudged` (lignes
-  155-194). Ce fichier ne contient pas de sabotage explicite plus large : retirer le garde-fou,
+  requête du tour 1, ni dans le prompt système, même si le voyageur parle d'enfants. Un contrôle positif vérifie que tous les marqueurs sont présents dans la requête après
+  un appel réel de `load_playbook.run`. L'absence de recopie au deuxième appel est
+  vérifiée séparément, tout comme la distinction `spontaneous` / `nudged`. Ce fichier ne contient pas de sabotage explicite plus large : retirer le garde-fou,
   et vérifier que le test tombe. Les contrôles existants suffisent à distinguer présence, absence
   et origine. Mais rien ne prouve qu'un contournement du code ferait échouer précisément ce test.
 
