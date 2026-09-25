@@ -60,6 +60,7 @@ dépôt. Quand un chiffre est une hypothèse, c'est écrit.
 | 44 | Une phrase de coulisses ne s'affiche pas | « Je vais noter votre projet » dans 19 passages sur 48 |
 | 45 | Une hésitation sur le nombre se règle par un choix | « 4 ou 6 personnes » posé en texte, une fois sur trois |
 | 46 | L'exemple du prompt ne donne plus un fait sans recherche | L'exemple même affirmait une saison, contre la règle 2 |
+| 47 | Une recherche web illisible ne fait plus tomber le tour | Mode surprise : un passage sur trois perdu en campagne |
 
 ## Qui a décidé
 
@@ -1410,3 +1411,22 @@ En sens inverse : réponses de plus de 80 mots 12 contre 6, questions à choix 1
 réponses plus longues restent à surveiller à la prochaine mesure.
 
 **Où le voir.** `src/server/agent/system-prompt.ts`.
+
+## Décision 47 : Une recherche web illisible ne fait plus tomber le tour
+
+**Le problème, mesuré.** Campagne du 2026-09-25 : le premier passage du mode surprise s'arrête sur
+« Expected ':' after property name in JSON ». Le voyageur ne reçoit rien. La trace montre deux
+appels et aucune recherche facturée.
+
+**La cause.** Le SDK ne décode l'entrée d'un outil qu'à la lecture. La boucle rattrapait déjà un
+outil local à l'entrée cassée (décision 7), mais pas un bloc de recherche web. Le bloc restait dans
+l'historique, et l'appel suivant échouait en écrivant sa requête.
+
+**Ce qu'on a fait.** Une recherche à l'entrée illisible sort du message. Sur un flux rattrapé, une
+recherche sans son résultat sort aussi : l'API la refuserait. Le libellé « Recherche » ne lit plus
+l'entrée sans garde.
+
+**La preuve.** Un test passe par le vrai SDK avec un faux réseau. Il est vu rouge avec la même
+erreur qu'en campagne, puis vert. Le sabotage du correctif le fait retomber.
+
+**Où le voir.** `src/server/agent/loop.ts`, `src/server/agent/loop.sdk.test.ts`.

@@ -121,3 +121,75 @@ describe("runTurn avec le vrai SDK - JSON d'entrée d'outil invalide", () => {
     expect(() => JSON.stringify(conversation.messages)).not.toThrow();
   });
 });
+
+/** Appel 1 : un note_duration valide, puis une recherche web dont l'entrée JSON est invalide. */
+const brokenSearchCall = sse([
+  start,
+  {
+    type: "content_block_start",
+    index: 0,
+    content_block: { type: "tool_use", id: "toolu_ok", name: "note_duration", input: {} },
+  },
+  {
+    type: "content_block_delta",
+    index: 0,
+    delta: {
+      type: "input_json_delta",
+      partial_json: JSON.stringify({
+        status: "confirmed",
+        min_nights: 9,
+        max_nights: 9,
+        quote: "10 jours",
+      }),
+    },
+  },
+  { type: "content_block_stop", index: 0 },
+  {
+    type: "content_block_start",
+    index: 1,
+    content_block: { type: "server_tool_use", id: "srvtoolu_bad", name: "web_search", input: {} },
+  },
+  {
+    type: "content_block_delta",
+    index: 1,
+    delta: { type: "input_json_delta", partial_json: '{"query" "Wadi Rum mars"}' },
+  },
+  { type: "content_block_stop", index: 1 },
+  {
+    type: "message_delta",
+    delta: { stop_reason: "tool_use", stop_sequence: null },
+    usage: { output_tokens: 40 },
+  },
+  { type: "message_stop" },
+]);
+
+describe("runTurn avec le vrai SDK - recherche web à l'entrée invalide", () => {
+  it("le tour continue, sans renvoyer à l'API la recherche illisible", async () => {
+    const bodies = [brokenSearchCall, answerCall];
+    const sent: string[] = [];
+    const client = new Anthropic({
+      apiKey: "test-sans-reseau",
+      maxRetries: 0,
+      fetch: async (_url, init) => {
+        sent.push(String(init?.body ?? ""));
+        const body = bodies.shift();
+        if (!body) throw new Error("plus de réponse prévue");
+        return new Response(body, { headers: { "content-type": "text/event-stream" } });
+      },
+    });
+    const conversation = new ConversationStore().create();
+    const events: ServerEvent[] = [];
+    await runTurn(
+      conversation,
+      { kind: "text", text: "On part 10 jours, surprenez-moi." },
+      (e) => events.push(e),
+      { client, config: loadConfig({}) },
+    );
+
+    expect(events.filter((e) => e.type === "error")).toEqual([]);
+    expect(conversation.brief.mandatory.duration.status).toBe("confirmed");
+    expect(sent).toHaveLength(2);
+    expect(sent[1]).not.toContain("srvtoolu_bad");
+    expect(() => JSON.stringify(conversation.messages)).not.toThrow();
+  });
+});

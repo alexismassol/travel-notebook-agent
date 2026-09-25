@@ -166,7 +166,12 @@ export async function runTurn(
       });
       stream.on("contentBlock", (block) => {
         if (block.type === "server_tool_use" && block.name === "web_search") {
-          const query = (block.input as { query?: string }).query ?? "";
+          let query = "";
+          try {
+            query = (block.input as { query?: string }).query ?? "";
+          } catch {
+            // Entrée illisible : le bloc est retiré après le flux, le libellé reste générique.
+          }
           emit({ type: "tool_activity", tool: "web_search", label: `Recherche : ${query}` });
         } else if (block.type === "tool_use") {
           // Le libellé vient de l'entrée brute du modèle, avant tout garde-fou. Si l'entrée
@@ -189,6 +194,7 @@ export async function runTurn(
         }
       });
       let message: Awaited<ReturnType<typeof stream.finalMessage>>;
+      let rattrape = false;
       try {
         message = await stream.finalMessage();
       } catch (error) {
@@ -204,6 +210,28 @@ export async function runTurn(
         const partial = jsonError ? stream.currentMessage : undefined;
         if (!partial?.content.some((b) => b.type === "tool_use")) throw error;
         message = { ...partial, stop_reason: "tool_use" } as unknown as typeof message;
+        rattrape = true;
+      }
+      // Une recherche web à l'entrée illisible ferait échouer l'appel suivant, à l'écriture de la
+      // requête. Sur un flux rattrapé, une recherche coupée avant son résultat serait refusée par
+      // l'API. Dans les deux cas, le bloc est retiré. Vu en campagne : mode surprise, tour perdu.
+      const resultats = new Set(
+        message.content.flatMap((b) =>
+          b.type === "web_search_tool_result" ? [b.tool_use_id] : [],
+        ),
+      );
+      const lisible = (block: { input: unknown }) => {
+        try {
+          void block.input;
+          return true;
+        } catch {
+          return false;
+        }
+      };
+      for (let i = message.content.length - 1; i >= 0; i -= 1) {
+        const b = message.content[i];
+        if (b?.type !== "server_tool_use") continue;
+        if (!lisible(b) || (rattrape && !resultats.has(b.id))) message.content.splice(i, 1);
       }
       // Un bloc d'outil dont l'entrée ne se décode pas garde une entrée vide dans l'historique
       // et reçoit une erreur d'outil, comme toute autre entrée malformée.
