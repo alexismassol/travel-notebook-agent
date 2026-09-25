@@ -1,0 +1,44 @@
+# Documents de travail
+resources/*
+
+# Outillage agents personnel
+.claude/*
+!.claude/skills/
+!.claude/agents/
+!.claude/hooks/
+!.claude/settings.json
+
+
+# Secrets et environnement
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Données locales
+*.sqlite
+*.db
+data/local/
+.cache/
+
+# OS et éditeurs
+.DS_Store
+.vscode/
+.idea/
+*.swp
+# Sorties locales de l'agent (brief envoyé simulé, traces)
+data/
+.tmp-diag/
