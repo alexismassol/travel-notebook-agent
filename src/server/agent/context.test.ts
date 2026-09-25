@@ -681,3 +681,40 @@ describe("hésitation sur le nombre de voyageurs", () => {
   });
 });
 
+describe("chargement à la demande des instructions Voyage pour une fête", () => {
+  const marqueurs = () =>
+    normalize(readPlaybook("voyage-pour-une-fete"))
+      .split("\n")
+      .map((line) => line.replace(/^[-#\s]+/, "").trim())
+      .filter((line) => line.length >= 25);
+
+  it("aucune ligne du playbook au premier tour ni dans le prompt système, même pour une fête", () => {
+    expect(marqueurs().length).toBeGreaterThanOrEqual(10);
+    const text = visibleText(
+      buildRequest(newConversationWith("On veut fêter Halloween quelque part"), config),
+    );
+    expect(marqueurs().filter((m) => text.includes(m))).toEqual([]);
+    expect(marqueurs().filter((m) => normalize(SYSTEM_PROMPT).includes(m))).toEqual([]);
+  });
+
+  it("contrôle positif : après chargement, toutes les instructions sont dans la requête", async () => {
+    const conversation = newConversationWith("On veut fêter Halloween quelque part");
+    const outcome = await loadPlaybookTool.run(
+      { name: "voyage-pour-une-fete", reason: "« fêter Halloween »" },
+      { conversation, toolUseId: "toolu_fete", emit: () => {} },
+    );
+    if (outcome.kind !== "result") throw new Error("résultat attendu");
+    conversation.messages.push(
+      {
+        role: "assistant",
+        content: [{ type: "tool_use", id: "toolu_fete", name: "load_playbook", input: {} }],
+      },
+      {
+        role: "user",
+        content: [{ type: "tool_result", tool_use_id: "toolu_fete", content: outcome.content }],
+      },
+    );
+    const text = visibleText(buildRequest(conversation, config));
+    expect(marqueurs().filter((m) => text.includes(m))).toEqual(marqueurs());
+  });
+});
