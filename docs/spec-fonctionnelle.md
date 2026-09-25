@@ -430,7 +430,7 @@ n'a écrit aucune année, le code la décale à l'année suivante avant de l'enr
 (`brief-tools.ts`, `nextYear` et `SAID_YEAR`). Une année écrite par le voyageur
 n'est jamais changée, même passée. Le libellé suit l'année décalée : sur la mesure du 2026-09-17,
 le carnet du scénario 6 affichait encore « juin 2026 » pour des dates déjà décalées en 2027
-(`docs/scenarios/6-contradiction.md:47`). Ce défaut, trouvé par la relecture des briefs, est corrigé
+(`docs/scenarios/6-contradiction.md`, mesure de cette date). Ce défaut, trouvé par la relecture des briefs, est corrigé
 et couvert par un test sur l'entrée réelle (`brief-tools.test.ts`).
 
 **Hésitation entre lieux, pas une contradiction.** Si le voyageur hésite entre plusieurs

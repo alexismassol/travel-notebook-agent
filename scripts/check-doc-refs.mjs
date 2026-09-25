@@ -14,7 +14,10 @@ import { join } from "node:path";
 const RACINE = new URL("..", import.meta.url).pathname;
 // Deux formes vues en vrai : `App.tsx:195` et `App.tsx, 195`. La seconde a longtemps traversé
 // le contrôle, et pointait dans le vide depuis plusieurs commits.
-const LIGNE = /[\w/.-]+\.tsx?(?::|,\s?)\d+/g;
+const LIGNE = /[\w/.-]+\.(?:tsx?|md)(?::|,\s?)\d+/g;
+// Même défaut écrit en toutes lettres : « (lignes 55-68) » échappait au motif ci-dessus, et huit
+// plages de lignes étaient devenues fausses sans que le contrôle ne le voie.
+const LIGNES_EN_CLAIR = /\blignes?\s+\d+(?:\s*-\s*\d+)?/gi;
 const CHEMIN = /`((?:src|scripts|tests|docs)\/[\w/.-]+\.(?:ts|tsx|md|json|css))`/g;
 
 async function fichiersDoc() {
@@ -70,6 +73,9 @@ for (const doc of await fichiersDoc()) {
   const texte = await readFile(join(RACINE, doc), "utf8");
   for (const [i, ligne] of texte.split("\n").entries()) {
     for (const trouve of ligne.match(LIGNE) ?? []) {
+      problemes.push(`${doc}:${i + 1} renvoi avec un numéro de ligne : ${trouve}`);
+    }
+    for (const trouve of ligne.match(LIGNES_EN_CLAIR) ?? []) {
       problemes.push(`${doc}:${i + 1} renvoi avec un numéro de ligne : ${trouve}`);
     }
     for (const m of ligne.matchAll(CHEMIN)) {

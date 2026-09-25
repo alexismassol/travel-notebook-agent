@@ -62,7 +62,7 @@ npm run visual-check      # Playwright : capture desktop/mobile -> data/screensh
 ## Documentation : deux règles tenues par une machine
 
 `npm run check` lance `scripts/check-doc-refs.mjs`, qui fait échouer la commande si :
-1. un document cite un **numéro de ligne** après un nom de fichier : il pourrit au
+1. un document cite un **numéro de ligne** (`fichier.ts:N`, `fichier.md:N`, ou « lignes N-M ») : il pourrit au
    premier changement de code. Citer le fichier et le nom de la fonction ;
 2. une **phrase dépasse 30 mots**, ligne de tableau comprise, ou un fichier cité n'existe pas.
 
