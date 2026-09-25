@@ -662,3 +662,22 @@ describe("chargement à la demande des instructions Voyage surprise", () => {
     ]);
   });
 });
+
+describe("hésitation sur le nombre de voyageurs", () => {
+  it("rappelle dès le début du tour de poser la question avec ask_choice", () => {
+    const text = visibleText(
+      newConversationWith("On part à Bali, 10 jours en juin, mais on sera 4 ou 6 personnes.")
+        .messages[0]?.content,
+    );
+    expect(text).toMatch(/« 4 ou 6 »/);
+    expect(text).toMatch(/ask_choice, une option par nombre/);
+  });
+
+  it("ne rappelle rien quand le nombre est sûr", () => {
+    const text = visibleText(
+      newConversationWith("Vietnam en novembre, on est 2.").messages[0]?.content,
+    );
+    expect(text).not.toMatch(/une option par nombre/);
+  });
+});
+

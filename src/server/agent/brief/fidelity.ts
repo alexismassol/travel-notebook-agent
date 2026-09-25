@@ -219,3 +219,35 @@ export function datesDoubt(label: string, said: string): string | null {
   if (!MOIS.test(normalize(label))) return null;
   return "aucun mois, aucune saison et aucune date ne sont dits ; « je suis flexible » est une absence de contrainte, pas une période";
 }
+
+/**
+ * Deux nombres ne comptent des gens que si le contexte le dit : « on sera » devant, ou
+ * « personnes » après. Une liste d'unités exclues en oublierait toujours une : « entre 18 et
+ * 25 °C » déclenchait le rappel.
+ */
+const AVANT_GENS =
+  "(?:on (?:est|sera|part|voyage)|nous (?:sommes|serons|partons|voyageons)|nous|groupe de|we are|we re|we will be)";
+const GENS =
+  "(?:personnes?|voyageurs?|adultes?|enfants?|amis?|amies?|copains?|copines?|potes?|couples?|invités?|participants?|people|persons|adults|friends|kids|children)";
+const HESITATION_OU = new RegExp(
+  `\\b(?:${AVANT_GENS}\\s+${NUMBER}\\s+ou\\s+${NUMBER}\\b${NOT_A_UNIT}|${NUMBER}\\s+ou\\s+${NUMBER}\\s+${GENS}\\b)`,
+  "i",
+);
+const HESITATION_ENTRE = new RegExp(
+  `\\b(?:${AVANT_GENS}\\s+entre\\s+${NUMBER}\\s+et\\s+${NUMBER}\\b${NOT_A_UNIT}|entre\\s+${NUMBER}\\s+et\\s+${NUMBER}\\s+${GENS}\\b)`,
+  "i",
+);
+
+/**
+ * Le voyageur hésite-t-il sur le nombre de voyageurs (« 4 ou 6 », « entre 5 et 8 ») ? Renvoie les
+ * mots vus, ou null. Une durée, un âge ou un montant ne comptent pas (`NOT_A_UNIT`). Mesuré : sans
+ * rappel avant sa réponse, l'agent posait la question en texte une fois sur trois, avant même de
+ * recevoir la consigne des outils `note_*`.
+ */
+export function hesitationSurLeNombre(dit: string): string | null {
+  const ou = dit.match(HESITATION_OU);
+  if (ou) return `${ou[1] ?? ou[3]} ou ${ou[2] ?? ou[4]}`;
+  const entre = dit.match(HESITATION_ENTRE);
+  if (entre) return `${entre[1] ?? entre[3]} et ${entre[2] ?? entre[4]}`;
+  return null;
+}

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { TravellersValue } from "../../../shared/brief";
-import { childrenDoubt, datesDoubt, durationDoubt, travellersDoubt } from "./fidelity";
+import {
+  childrenDoubt,
+  datesDoubt,
+  durationDoubt,
+  hesitationSurLeNombre,
+  travellersDoubt,
+} from "./fidelity";
 
 const travellers = (
   total: [number, number],
@@ -256,5 +262,34 @@ describe("un nombre n'est pas une date", () => {
 
   it("une vraie date en chiffres reste acceptée", () => {
     expect(datesDoubt("juin 2027", "on part du 15/06 au 30/06, on est 4")).toBeNull();
+  });
+});
+
+/**
+ * Cas mesuré : « on sera 4 ou 6 personnes » posé en texte au lieu d'une question à choix, une
+ * fois sur trois. Le rappel doit partir dès le message, avant que l'agent écrive sa question.
+ */
+describe("hesitationSurLeNombre", () => {
+  it("repère une hésitation sur le nombre de voyageurs", () => {
+    expect(hesitationSurLeNombre("On part à Bali, mais on sera 4 ou 6 personnes")).toBe("4 ou 6");
+    expect(hesitationSurLeNombre("nous serons trois ou quatre")).toBe("trois ou quatre");
+    expect(hesitationSurLeNombre("entre 5 et 8 personnes, ça dépend")).toBe("5 et 8");
+  });
+
+  it("ignore une durée, un budget ou un nombre sûr", () => {
+    expect(hesitationSurLeNombre("on part 4 ou 5 jours")).toBeNull();
+    expect(hesitationSurLeNombre("entre 3000 et 4000 euros")).toBeNull();
+    expect(hesitationSurLeNombre("on est 2, en novembre")).toBeNull();
+  });
+
+  it("ignore deux nombres qui ne comptent pas des gens", () => {
+    expect(hesitationSurLeNombre("on veut un climat entre 18 et 25 °C")).toBeNull();
+    expect(hesitationSurLeNombre("des étapes de 3 ou 4 kg de bagages")).toBeNull();
+    expect(hesitationSurLeNombre("un hôtel 3 ou 4 étoiles")).toBeNull();
+  });
+
+  it("repère l'hésitation quand le contexte parle de personnes", () => {
+    expect(hesitationSurLeNombre("on sera entre 5 et 8")).toBe("5 et 8");
+    expect(hesitationSurLeNombre("3 ou 4 amis de fac")).toBe("3 ou 4");
   });
 });

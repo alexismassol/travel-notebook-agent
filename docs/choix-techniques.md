@@ -58,6 +58,7 @@ dépôt. Quand un chiffre est une hypothèse, c'est écrit.
 | 42 | Un troisième playbook pour le voyage surprise | « Surprenez-moi » ne veut pas dire répondre à un questionnaire |
 | 43 | Une fiche de pays montre une vraie photo du pays | « Albanie » montrait un sabre de musée, « Jordanie » une avenue de Paris |
 | 44 | Une phrase de coulisses ne s'affiche pas | « Je vais noter votre projet » dans 19 passages sur 48 |
+| 45 | Une hésitation sur le nombre se règle par un choix | « 4 ou 6 personnes » posé en texte, une fois sur trois |
 
 ## Qui a décidé
 
@@ -1370,3 +1371,19 @@ Bali en juillet, c'est noté » donne une vraie information au voyageur.
 une phrase visible dans 6 passages sur 48, et 30 phrases retirées sur les deux campagnes.
 
 **Où le voir.** `src/server/agent/text-guard.ts`, `src/server/agent/loop.ts`.
+
+## Décision 45 : Une hésitation sur le nombre se règle par un choix
+
+**Le problème, mesuré.** « On sera 4 ou 6 personnes » : une fois sur trois, l'agent posait la
+question en texte. Il l'écrivait avant de recevoir la consigne des outils `note_*`.
+
+**Ce qu'on a fait.** `hesitationSurLeNombre` (`fidelity.ts`) repère « 4 ou 6 » ou « entre 5 et 8 »
+dans le message, sans compter une durée, un âge ou un montant. Il faut aussi un contexte de
+personnes : « on sera » devant, ou « personnes », « amis » après. Sans lui, « entre 18 et 25 °C »
+déclenchait le rappel, trouvé par la relecture du serveur. Un rappel part alors dès le début du
+tour : noter, puis poser la question avec `ask_choice`, une option par nombre dit.
+
+**La preuve.** Quatre tests, vus rouges puis verts, sabotage vérifié. Campagne réelle : question à
+choix sur Bali 3 fois sur 3, contre 1 sur 3 avant.
+
+**Où le voir.** `src/server/agent/brief/fidelity.ts`, `src/server/agent/context.ts`.

@@ -4,6 +4,7 @@ import { MANDATORY_FIELDS, type MandatoryField } from "../../shared/brief";
 import type { AgentConfig } from "../config";
 import type { Conversation } from "../conversation";
 import { computeCompleteness } from "./brief/completeness";
+import { hesitationSurLeNombre } from "./brief/fidelity";
 import { summarizeBrief } from "./brief/summarize";
 import { SYSTEM_PROMPT } from "./system-prompt";
 import { toolDefinitions } from "./tools";
@@ -94,6 +95,7 @@ function turnReminders(conversation: Conversation, ready: boolean, dit: string):
   const destination = conversation.brief.mandatory.destination;
   const dates = conversation.brief.mandatory.dates;
   const suffisant = dejaSuffisant(conversation);
+  const hesite = hesitationSurLeNombre(dit);
   // Taux mesurés sur 3 passages (docs/scenarios) : fiche pour « c'est où Zanzibar » 1/3,
   // recommandation en fiches pour une destination ouverte en famille 0/3.
   const openWithPeriod =
@@ -109,6 +111,11 @@ function turnReminders(conversation: Conversation, ready: boolean, dit: string):
     ...(conversation.lastReplyDefects.length > 0
       ? [
           `Dans ton message précédent, ${conversation.lastReplyDefects.join(" ; ")}. Ne recommence pas ce tour-ci.`,
+        ]
+      : []),
+    ...(hesite
+      ? [
+          `Le voyageur hésite sur le nombre de voyageurs (« ${hesite} ») : note-le avec note_travellers, puis pose la question avec ask_choice, une option par nombre dit. Pas de question en texte.`,
         ]
       : []),
     ...(ecritEnAnglais(dit)
