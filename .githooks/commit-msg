@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+# Hook commit-msg du projet travel-brief-agent.
+#
+# commit-msg et non pre-commit : c'est le seul des deux qui recoit le fichier
+# du message en $1, indispensable pour reconnaitre l'echappatoire
+# [skip docs]. Il s'execute apres la redaction du message et avant la
+# creation du commit : refuser ici n'a rien detruit.
+#
+# Installation, une fois par poste de travail :
+#   git config core.hooksPath .githooks
+# (core.hooksPath est une configuration LOCALE, elle n'est pas versionnee :
+#  chaque personne qui clone le depot doit lancer cette commande.)
+#
+# Echappatoires legitimes :
+#   - un commit qui ne touche ni src/server/agent/, ni src/shared/ : le hook ne
+#     demande pas de documentation
+#   - un changement sans effet sur le comportement (renommage, format, typo) :
+#     ecrire [skip docs] dans le message (n'importe ou, insensible a la casse)
+#   - une urgence : git commit --no-verify
+#
+# Limite connue : ce hook cherche ses motifs (Co-Authored-By, [skip docs]) dans le texte
+# entier du message, sans distinguer une MENTION d'un USAGE reel. Committer ce
+# fichier lui-meme, ou une documentation qui cite "Co-Authored-By" en exemple,
+# peut donc etre refuse a tort. C'est le bon sens de defaillance pour un
+# garde-fou : sur-bloquer plutot que laisser passer une vraie violation.
+# Contournement : reformuler, ou git commit -F fichier.
+#
+# Un hook qui bloque tout finit par etre desactive. Celui-ci ne bloque que ce
+# qui touche le coeur de l'agent sans doc, et laisse passer merge/revert/rebase.
+
+set -uo pipefail
+
+RACINE="$(git rev-parse --show-toplevel)"
+cd "$RACINE" || exit 0
+
+MSG_FICHIER="${1:?ce hook doit etre installe comme commit-msg, il recoit le fichier du message}"
+
+# --- 1. Forme du message ----------------------------------------------------
+# Ces controles s'appliquent a TOUS les commits, y compris ceux qui portent
+# [skip docs] : l'echappatoire dispense de documentation, pas de forme.
+#
+# Le sujet est la premiere ligne non vide et non commentee. Les lignes que git
+# ajoute lui-meme (# ...) ne comptent pas.
+SUJET="$(grep -vE '^\s*#' "$MSG_FICHIER" | grep -vE '^\s*$' | head -1)"
+
+# 1.a Aucune ligne Co-Authored-By, nulle part dans le message.
+# Regle absolue du CLAUDE.md global. Elle a besoin d'un mecanisme et pas d'un
+# rappel : certains outils d'assistance l'ajoutent par defaut, et une regle
+# qui depend du bon vouloir de l'outil qui la viole ne tient pas.
+if grep -qiE '^[[:space:]]*Co-Authored-By[[:space:]]*:' "$MSG_FICHIER"; then
+  cat >&2 <<'FIN'
+
+COMMIT REFUSE : le message contient une ligne Co-Authored-By.
+C'est interdit sans exception sur ce projet. Retire la ligne et relance.
+
+FIN
+  exit 1
+fi
+
+# Les messages generes par git lui-meme echappent au controle de format :
+# les refuser bloquerait un merge, un revert ou un rebase legitime.
+case "$SUJET" in
+  Merge\ *|Revert\ *|fixup!\ *|squash!\ *) SUJET="" ;;
+esac
+
+if [ -n "$SUJET" ]; then
+  # 1.b Format conventionnel strict : un type autorise, une portee optionnelle
+  # en minuscules, deux-points, une espace, puis une description.
+  TYPES='feat|fix|docs|refactor|test|chore'
+  if ! printf '%s' "$SUJET" | grep -qE "^(${TYPES})(\\([a-z0-9._-]+\\))?: .+"; then
+    cat >&2 <<FIN
+
+COMMIT REFUSE : le sujet ne suit pas le format conventionnel.
+Recu   : $SUJET
+Attendu: <type>: <description>      ou      <type>(<portee>): <description>
+Types autorises : feat, fix, docs, refactor, test, chore
+Un seul type par commit.
+
+FIN
+    exit 1
+  fi
+
+  # 1.c Longueur du sujet. La limite vient de l'affichage de git log et des
+  # interfaces de revue, qui tronquent au-dela.
+  if [ "${#SUJET}" -gt 72 ]; then
+    cat >&2 <<FIN
+
+COMMIT REFUSE : sujet de ${#SUJET} caracteres, la limite est 72.
+Recu : $SUJET
+Mets le detail dans le corps du message, apres une ligne vide.
+
+FIN
+    exit 1
+  fi
+
+  # 1.d Pas de point final : le sujet est un titre, pas une phrase.
+  case "$SUJET" in
+    *.)
+      cat >&2 <<FIN
+
+COMMIT REFUSE : le sujet ne prend pas de point final.
+Recu : $SUJET
+
+FIN
+      exit 1
+      ;;
+  esac
+
+  # 1.e La description commence en minuscule juste apres les deux-points.
+  DESCRIPTION="${SUJET#*: }"
+  PREMIER_CARACTERE="${DESCRIPTION:0:1}"
+  case "$PREMIER_CARACTERE" in
+    [A-Z])
+      cat >&2 <<FIN
+
+COMMIT REFUSE : la description commence par une majuscule.
+Recu : $SUJET
+Mets une minuscule juste apres les deux-points, par exemple :
+  fix: handle Stripe webhook   (et non "fix: Handle Stripe webhook")
+Les noms propres au milieu de la phrase restent en majuscule.
+
+FIN
+      exit 1
+      ;;
+  esac
+fi
+# Volontairement NON controle : la casse a l'interieur de la description, au-
+# dela du premier caractere. Un controle plus large produirait des faux
+# positifs sur les noms propres du domaine (Anthropic, Claude, Wikipedia).
+
+# --- 2. Que touche ce commit ? (indexes uniquement) -------------------------
+# Ce qui n'est pas dans l'index n'est pas commite.
+INDEXES=$(git diff --cached --name-only --diff-filter=ACMR)
+
+# --- 3. Regle docs a jour ----------------------------------------------------
+# Le commit touche-t-il le coeur de l'agent (src/server/agent/ ou src/shared/) ?
+# Si oui, au moins une doc doit etre stagee dans le MEME commit. Echappatoire :
+# [skip docs].
+if ! grep -qiF '[skip docs]' "$MSG_FICHIER" && [ -n "$INDEXES" ]; then
+  COEUR_TOUCHE=0
+  while IFS= read -r f; do
+    case "$f" in
+      src/server/agent/*|src/shared/*)
+        COEUR_TOUCHE=1 ;;
+      *) : ;;
+    esac
+  done <<< "$INDEXES"
+
+  if [ "$COEUR_TOUCHE" -eq 1 ]; then
+    DOC_A_JOUR=0
+    for doc in docs/spec-technique.md docs/spec-fonctionnelle.md \
+               docs/choix-techniques.md docs/architecture.md; do
+      if printf '%s\n' "$INDEXES" | grep -qx "$doc"; then
+        DOC_A_JOUR=1
+        break
+      fi
+    done
+
+    if [ "$DOC_A_JOUR" -eq 0 ]; then
+      cat >&2 <<'FIN'
+
+COMMIT REFUSE : ce commit touche le coeur de l'agent (src/server/agent/ ou
+src/shared/) sans mettre a jour la documentation.
+
+A faire, l'un des trois :
+  1. Mets a jour la doc concernee et stage-la dans ce meme commit :
+     docs/spec-technique.md, docs/spec-fonctionnelle.md,
+     docs/choix-techniques.md ou docs/architecture.md.
+  2. Lance l'agent .claude/agents/gardien-docs.md pour la mettre a jour.
+  3. Si ce commit ne change AUCUN comportement (renommage, format, typo),
+     ajoute [skip docs] dans le message.
+
+FIN
+      exit 1
+    fi
+  fi
+fi
+
+exit 0

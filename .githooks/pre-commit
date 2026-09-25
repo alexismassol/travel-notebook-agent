@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# Hook pre-commit du projet travel-brief-agent.
+#
+# S'execute avant la redaction du message (avant commit-msg), sur l'INDEX
+# stage uniquement : ce qui n'est pas ajoute a l'index n'est pas inspecte.
+#
+# Installation, une fois par poste de travail :
+#   git config core.hooksPath .githooks
+# (core.hooksPath est une configuration LOCALE, elle n'est pas versionnee :
+#  chaque personne qui clone le depot doit lancer cette commande.)
+#
+# 4 controles, dans l'ordre : fichiers .env, cle Anthropic dans le diff,
+# documents de travail non verses, lint biome sur les fichiers stages.
+#
+# Urgence : git commit --no-verify (a n'utiliser qu'en connaissance de cause,
+# aucun des 4 controles ne s'execute alors).
+#
+# SKIP_BIOME_IN_TESTS=1 desactive uniquement le controle biome (etape 4).
+# Reserve aux depots jetables de test-hooks.sh, qui n'ont pas de node_modules.
+# Ne JAMAIS positionner cette variable pour un vrai commit.
+
+set -uo pipefail
+
+RACINE="$(git rev-parse --show-toplevel)"
+cd "$RACINE" || exit 0
+
+FICHIERS="$(git diff --cached --name-only --diff-filter=ACMR)"
+[ -z "$FICHIERS" ] && exit 0
+
+# --- 1. Fichiers .env --------------------------------------------------------
+# Jamais de secrets dans git : seul .env.example (un gabarit sans valeur reelle)
+# est autorise a porter ce nom.
+ENV_INTERDITS=""
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  base="$(basename "$f")"
+  case "$base" in
+    .env.example) : ;;
+    .env|.env.*) ENV_INTERDITS="$ENV_INTERDITS
+$f" ;;
+  esac
+done <<< "$FICHIERS"
+
+if [ -n "$ENV_INTERDITS" ]; then
+  cat >&2 <<FIN
+
+COMMIT REFUSE : un fichier .env est stage.
+Fichier(s) :$ENV_INTERDITS
+
+Les secrets vont dans .env, jamais dans git. Si c'est un gabarit sans valeur
+reelle, renomme-le .env.example et re-stage-le.
+Retire-le de l'index :
+  git restore --staged -- <fichier>
+
+FIN
+  exit 1
+fi
+
+# --- 2. Cle Anthropic dans le diff stage ------------------------------------
+# Motif : "sk-ant-" suivi d'au moins 20 caracteres alphanumeriques, "_" ou "-".
+# Le message ne reaffiche JAMAIS la cle : seulement le fichier concerne.
+MOTIF_CLE='sk-ant-[A-Za-z0-9_-]{20,}'
+FICHIERS_AVEC_CLE=""
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  if git diff --cached -U0 -- "$f" 2>/dev/null | grep -qE "$MOTIF_CLE"; then
+    FICHIERS_AVEC_CLE="$FICHIERS_AVEC_CLE
+$f"
+  fi
+done <<< "$FICHIERS"
+
+if [ -n "$FICHIERS_AVEC_CLE" ]; then
+  cat >&2 <<FIN
+
+COMMIT REFUSE : une chaine qui ressemble a une cle Anthropic est dans le diff.
+Fichier(s) concerne(s) (la cle elle-meme n'est pas affichee) :$FICHIERS_AVEC_CLE
+
+Retire la cle du fichier, verifie qu'elle n'est nulle part ailleurs dans
+l'historique local, puis re-stage :
+  git restore --staged -- <fichier>
+
+Les secrets vont uniquement dans .env, jamais dans un fichier suivi par git.
+
+FIN
+  exit 1
+fi
+
+# --- 3. Documents de travail non verses -------------------------------------
+# Deja exclus par .gitignore en usage normal ; ce controle couvre le cas d'un
+# ajout force (git add -f) qui contournerait le .gitignore.
+DOC_TRAVAIL=""
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  case "$f" in
+    resources/*.md|resources/*.pdf)
+      DOC_TRAVAIL="$DOC_TRAVAIL
+$f" ;;
+  esac
+done <<< "$FICHIERS"
+
+if [ -n "$DOC_TRAVAIL" ]; then
+  cat >&2 <<FIN
+
+COMMIT REFUSE : un document de travail non verse est stage.
+Fichier(s) :$DOC_TRAVAIL
+
+Les notes et les PDF de resources/ sont des documents de
+travail, pas du code du projet : ils ne se versionnent pas.
+Retire-le de l'index :
+  git restore --staged -- <fichier>
+
+FIN
+  exit 1
+fi
+
+# --- 4. Lint biome sur les fichiers stages ----------------------------------
+if [ "${SKIP_BIOME_IN_TESTS:-0}" = "1" ]; then
+  :
+elif printf '%s\n' "$FICHIERS" | grep -qE '\.(ts|tsx|json)$'; then
+  if ! npx biome check --staged --no-errors-on-unmatched; then
+    cat >&2 <<'FIN'
+
+COMMIT REFUSE : biome a trouve un probleme sur les fichiers stages.
+Corrige-le, ou lance :
+  npx biome check --write --staged
+
+FIN
+    exit 1
+  fi
+fi
+
+exit 0
