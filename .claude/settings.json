@@ -1,4 +1,5 @@
 {
+  "autoMemoryDirectory": "~/.claude/memoire/travel-notebook-agent",
   "hooks": {
     "Stop": [
       {
