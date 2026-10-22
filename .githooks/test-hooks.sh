@@ -27,6 +27,10 @@
 
 set -uo pipefail
 
+# Locale d'un Mac : en UTF-8, [A-Z] attrapait aussi les minuscules et le hook
+# refusait tout sujet valide. La matrice tourne donc toujours dans cette locale.
+export LC_ALL=en_US.UTF-8
+
 HOOKS_SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMIT_MSG_HOOK="$HOOKS_SRC_DIR/commit-msg"
 PRE_COMMIT_HOOK="$HOOKS_SRC_DIR/pre-commit"

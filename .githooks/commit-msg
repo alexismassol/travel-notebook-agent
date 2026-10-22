@@ -110,7 +110,7 @@ FIN
   DESCRIPTION="${SUJET#*: }"
   PREMIER_CARACTERE="${DESCRIPTION:0:1}"
   case "$PREMIER_CARACTERE" in
-    [A-Z])
+    [[:upper:]])
       cat >&2 <<FIN
 
 COMMIT REFUSE : la description commence par une majuscule.
